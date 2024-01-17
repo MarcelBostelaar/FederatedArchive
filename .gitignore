@@ -1,0 +1,4 @@
+
+/src/uploads/*
+*__pycache__*
+/src/db.sqlite3
