@@ -47,20 +47,32 @@ class MultipleFileField(forms.FileField):
             result = single_file_clean(data, initial)
         return result
 
-class EditionForm(forms.ModelForm):
+class LocalEdition(Edition):
+    class Meta:
+        proxy = True
+
+# class GeneratedEdition(Edition):
+#     class Meta:
+#         proxy = True
+
+# class RemoteEdition(Edition):
+#     class Meta:
+#         proxy = True
+
+class LocalEditionForm(forms.ModelForm):
     new_files = MultipleFileField(required=False)
     delete_old_files = forms.BooleanField(required=False)
 
     class Meta:
-        model = Edition
+        model = LocalEdition
         fields = '__all__'
 
-class EditionAdmin(admin.ModelAdmin):
-    list_display = ('edition_of', 'publication_date', 'language_iso_639_format', 'file_format', 'open_file', 'title', 'all_authors', 'description')
+class LocalEditionAdmin(admin.ModelAdmin):
+    list_display = ('edition_of', 'publication_date', 'language_iso_639_format', 'file_format', 'open_file', 'title', 'all_authors', 'description', "is_fork")
     search_fields = ['edition_of', 'publication_date', 'title', 'all_authors']
     list_filter = ["language_iso_639_format", 'file_format']
 
-    form = EditionForm
+    form = LocalEditionForm
 
     fieldsets = (
         (None, {
@@ -84,9 +96,20 @@ class EditionAdmin(admin.ModelAdmin):
         obj.save()
         return returnValue
     
+    def is_fork(self, obj):
+        return obj.existance_type == existanceType.LOCALFORK
+    
+    def get_queryset(self, request):
+        """
+        Filter the objects displayed in the change_list to only
+        display those for the currently signed in user.
+        """
+        qs = super(LocalEditionAdmin, self).get_queryset(request)
+        return qs.filter(existance_type__in=[existanceType.LOCAL, existanceType.LOCALFORK])
+    
 
 admin.site.register(Author, AuthorAdmin)
 admin.site.register(AuthorDescriptionTranslation, AuthorDescriptionTranslationAdmin)
 admin.site.register(AbstractDocument, AbstractDocumentAdmin)
 admin.site.register(AbstractDocumentDescriptionTranslation, AbstractDocumentDescriptionTranslationAdmin)
-admin.site.register(Edition, EditionAdmin)
+admin.site.register(LocalEdition, LocalEditionAdmin)
