@@ -1,8 +1,7 @@
 from django.db import models
+from archivebackend.constants import *
 
-descriptionLength = 500
-authorLength = 100
-titleLength = 200
+
 
 # Create your models here.
 
@@ -60,7 +59,7 @@ class Edition(models.Model):
     title = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength)
     additional_authors = models.ManyToManyField(Author, blank=True)
-    # file = models.FileField(upload_to='uploads/')
+    file_url = models.CharField(max_length=maxFileNameLength, blank=True)
 
     def __str__(self) -> str:
         return self.title + " - (" + self.language_iso_639_format + ") - " + self.file_format
