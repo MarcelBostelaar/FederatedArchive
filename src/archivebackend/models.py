@@ -111,7 +111,7 @@ class Edition(RemoteModel):
     #precalculated hyperlink value to quickly serve users
     file_url = models.CharField(max_length=maxFileNameLength, blank=True)
     #how is the document saved, fully local settings.
-    last_file_update = models.DateTimeField(blank=True, default=datetime(1970, 1, 1, 1, 00))
+    last_file_update = models.DateTimeField(blank=True, default=datetime.datetime(1970, 1, 1, 1, 00))
     existance_type = models.IntegerField(
         choices=existanceType.choices,
         default=existanceType.LOCAL,
