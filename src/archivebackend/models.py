@@ -9,6 +9,23 @@ class RemotePeer(models.Model):
     mirror_files = models.BooleanField(blank=True, default=False)
     last_checkin = models.DateTimeField()
 
+    def __str__(self) -> str:
+        return self.site_name
+
+
+class Language(models.Model):
+    iso_639_code = models.CharField(max_length=10, unique=True)
+    english_name = models.CharField(max_length=40)
+    endonym = models.CharField(max_length=40)
+    child_language_of = models.ForeignKey("Language", blank=True, null=True, on_delete=models.SET_NULL)
+
+    #remote info
+    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
+    remote_id = models.BigIntegerField(blank=True, null=True)
+
+    def __str__(self) -> str:
+        return self.iso_639_code + " - " + self.english_name
+
 class Author(models.Model):
     name = models.CharField(max_length=authorLength)
     birthday = models.DateField(blank=True, null=True)
@@ -23,7 +40,7 @@ class Author(models.Model):
 
 class AuthorDescriptionTranslation(models.Model):
     describes = models.ForeignKey(Author, on_delete=models.CASCADE)
-    language_iso_639_format = models.CharField(max_length=2)
+    language = models.ForeignKey(Language, on_delete=models.CASCADE)
     name_translation = models.CharField(max_length=authorLength)
     description = models.CharField(max_length=descriptionLength, blank=True)
     
@@ -32,10 +49,10 @@ class AuthorDescriptionTranslation(models.Model):
     remote_id = models.BigIntegerField(blank=True, null=True)
 
     def __str__(self) -> str:
-        return self.name_translation + " - (" + self.language_iso_639_format + ")"
+        return self.name_translation + " - (" + self.language.iso_639_code + ")"
 
     class Meta:
-        unique_together = ["describes", "language_iso_639_format"]
+        unique_together = ["describes", "language"]
 
 
 class AbstractDocument(models.Model):
@@ -58,7 +75,7 @@ class AbstractDocument(models.Model):
 class AbstractDocumentDescriptionTranslation(models.Model):
     """Provides functionality for adding titles and descriptions of abstract documents in multiple languages"""
     describes = models.ForeignKey(AbstractDocument, on_delete=models.CASCADE)
-    language_iso_639_format = models.CharField(max_length=2)
+    language = models.ForeignKey(Language, on_delete=models.CASCADE)
     title_translation = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength, blank=True)
     
@@ -67,10 +84,10 @@ class AbstractDocumentDescriptionTranslation(models.Model):
     remote_id = models.BigIntegerField(blank=True, null=True)
 
     def __str__(self) -> str:
-        return self.title_translation + " - (" + self.language_iso_639_format + ")"
+        return self.title_translation + " - (" + self.language.iso_639_code + ")"
 
     class Meta:
-        unique_together = ["describes", "language_iso_639_format"]
+        unique_together = ["describes", "language"]
 
 class existanceType(models.IntegerChoices):
     """Describes how the edition exists on this server"""
@@ -83,12 +100,12 @@ class existanceType(models.IntegerChoices):
 class Edition(models.Model):
     edition_of = models.ForeignKey(AbstractDocument, on_delete=models.CASCADE)
     publication_date = models.DateField(blank=True, null=True)
-    language_iso_639_format = models.CharField(max_length=2)
+    language = models.ForeignKey(Language, on_delete=models.CASCADE)
     file_format = models.CharField(max_length=10)
     title = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength)
     additional_authors = models.ManyToManyField(Author, blank=True)
-    
+    last_file_update = models.DateTimeField(blank=True, auto_now_add=True)
     #precalculated hyperlink value to quickly serve users
     file_url = models.CharField(max_length=maxFileNameLength, blank=True)
     #how is the document saved.
@@ -102,4 +119,4 @@ class Edition(models.Model):
     from_remote = models.ForeignKey(RemotePeer, on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self) -> str:
-        return self.title + " - (" + self.language_iso_639_format + ") - " + self.file_format
+        return self.title + " - (" + self.language.iso_639_code + ") - " + self.file_format
