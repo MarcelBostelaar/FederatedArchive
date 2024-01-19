@@ -1,5 +1,8 @@
+import string
+from typing import Generic, Type
 from django.db import models
 from archivebackend.constants import *
+
 
 # Create your models here.
 
@@ -12,41 +15,46 @@ class RemotePeer(models.Model):
     def __str__(self) -> str:
         return self.site_name
 
+#Abstract class
+class RemoteModel(models.Model):
+    """Contains fields and functionality to turn a model remote mirrorable"""
+    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
+    remote_id = models.BigIntegerField(blank=True, null=True)
+    
+    class Meta:
+        abstract = True
 
-class Language(models.Model):
+#Abstract class
+def AliasableModel(nameOfOwnClass: string):
+    """Contains fields and functionality to allow an entry to be an alias of another entry"""
+    class AliasableModel_(RemoteModel):
+        alias_of_local = models.ForeignKey(nameOfOwnClass, blank=True, null=True, on_delete=models.SET_NULL)
+
+        class Meta:
+            abstract = True
+    return AliasableModel_
+
+class Language(RemoteModel):
     iso_639_code = models.CharField(max_length=10, unique=True)
     english_name = models.CharField(max_length=40)
     endonym = models.CharField(max_length=40)
     child_language_of = models.ForeignKey("Language", blank=True, null=True, on_delete=models.SET_NULL)
 
-    #remote info
-    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
-    remote_id = models.BigIntegerField(blank=True, null=True)
-
     def __str__(self) -> str:
         return self.iso_639_code + " - " + self.english_name
 
-class Author(models.Model):
+class Author(AliasableModel("Author")):
     name = models.CharField(max_length=authorLength)
     birthday = models.DateField(blank=True, null=True)
-    
-    #used to store authors retrieved from peer networks
-    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
-    alias_of_local = models.ForeignKey("Author", blank=True, null=True, on_delete=models.SET_NULL)
-    remote_id = models.BigIntegerField(blank=True, null=True)
 
     def __str__(self) -> str:
         return self.name + " - " + str(self.birthday)
 
-class AuthorDescriptionTranslation(models.Model):
+class AuthorDescriptionTranslation(RemoteModel):
     describes = models.ForeignKey(Author, on_delete=models.CASCADE)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
     name_translation = models.CharField(max_length=authorLength)
     description = models.CharField(max_length=descriptionLength, blank=True)
-    
-    #used to store descriptions retrieved from peer networks
-    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
-    remote_id = models.BigIntegerField(blank=True, null=True)
 
     def __str__(self) -> str:
         return self.name_translation + " - (" + self.language.iso_639_code + ")"
@@ -55,7 +63,7 @@ class AuthorDescriptionTranslation(models.Model):
         unique_together = ["describes", "language"]
 
 
-class AbstractDocument(models.Model):
+class AbstractDocument(AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.
     A workable id system must be established on a per-project basis. 
     A possibility is <the author + year + original book title in the original language, in common latin transliteration>
@@ -63,25 +71,16 @@ class AbstractDocument(models.Model):
     human_readable_id = models.CharField(max_length=200, unique=True)
     original_publication_date = models.DateField(blank=True, null=True)
     authors = models.ManyToManyField(Author)
-    
-    #used to store abstract documents retrieved from peer networks
-    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
-    remote_id = models.BigIntegerField(blank=True, null=True)
-    alias_of_local = models.ForeignKey("AbstractDocument", blank=True, null=True, on_delete=models.SET_NULL)
 
     def __str__(self) -> str:
         return self.human_readable_id
 
-class AbstractDocumentDescriptionTranslation(models.Model):
+class AbstractDocumentDescriptionTranslation(RemoteModel):
     """Provides functionality for adding titles and descriptions of abstract documents in multiple languages"""
     describes = models.ForeignKey(AbstractDocument, on_delete=models.CASCADE)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
     title_translation = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength, blank=True)
-    
-    #used to store document descriptions retrieved from peer networks
-    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
-    remote_id = models.BigIntegerField(blank=True, null=True)
 
     def __str__(self) -> str:
         return self.title_translation + " - (" + self.language.iso_639_code + ")"
@@ -97,11 +96,12 @@ class existanceType(models.IntegerChoices):
     MIRROREDREMOTE = 3 #It exists on a remote server, and is copied locally by this instance for reliability/speed/archival purposes.
     LOCALFORK = 4 #Fully locally owned copy, with an origin on a remote server.
 
-class Edition(models.Model):
+class Edition(RemoteModel):
     edition_of = models.ForeignKey(AbstractDocument, on_delete=models.CASCADE)
     publication_date = models.DateField(blank=True, null=True)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
     file_format = models.CharField(max_length=10)
+    generated_from = models.ForeignKey("Edition", on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength)
     additional_authors = models.ManyToManyField(Author, blank=True)
@@ -113,10 +113,6 @@ class Edition(models.Model):
         choices=existanceType.choices,
         default=existanceType.LOCAL,
     )
-    #Following are specific to the type of file
-    generated_from = models.ForeignKey("Edition", on_delete=models.CASCADE, blank=True, null=True)
-    remote_id = models.BigIntegerField(blank=True, null=True)
-    from_remote = models.ForeignKey(RemotePeer, on_delete=models.SET_NULL, blank=True, null=True)
 
     def __str__(self) -> str:
         return self.title + " - (" + self.language.iso_639_code + ") - " + self.file_format
