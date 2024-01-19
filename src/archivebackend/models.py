@@ -1,38 +1,41 @@
+import datetime
 import string
 from typing import Generic, Type
+import uuid
 from django.db import models
+from django.dispatch import receiver
+from django.db.models.signals import pre_save
 from archivebackend.constants import *
-
-
-# Create your models here.
-
-class RemotePeer(models.Model):
-    site_name = models.CharField(max_length=titleLength)
-    site_adress = models.CharField(max_length=maxFileNameLength)
-    mirror_files = models.BooleanField(blank=True, default=False)
-    last_checkin = models.DateTimeField()
-
-    def __str__(self) -> str:
-        return self.site_name
 
 #Abstract class
 class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable"""
-    from_remote = models.ForeignKey(RemotePeer, blank=True, null=True, on_delete=models.CASCADE)
-    remote_id = models.BigIntegerField(blank=True, null=True)
+    from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
+    # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky).
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     class Meta:
         abstract = True
 
 #Abstract class
 def AliasableModel(nameOfOwnClass: string):
-    """Contains fields and functionality to allow an entry to be an alias of another entry"""
+    """Contains fields and functionality to allow an entry to be an alias of another entry of the same type"""
     class AliasableModel_(RemoteModel):
         alias_of_local = models.ForeignKey(nameOfOwnClass, blank=True, null=True, on_delete=models.SET_NULL)
 
         class Meta:
             abstract = True
     return AliasableModel_
+
+class RemotePeer(RemoteModel):
+    site_name = models.CharField(max_length=titleLength)
+    site_adress = models.CharField(max_length=maxFileNameLength)
+    mirror_files = models.BooleanField(blank=True, default=False)
+    peers_of_peer = models.BooleanField(blank=True, default=True)
+    last_checkin = models.DateTimeField()
+
+    def __str__(self) -> str:
+        return self.site_name
 
 class Language(RemoteModel):
     iso_639_code = models.CharField(max_length=10, unique=True)
@@ -105,10 +108,10 @@ class Edition(RemoteModel):
     title = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength)
     additional_authors = models.ManyToManyField(Author, blank=True)
-    last_file_update = models.DateTimeField(blank=True, auto_now_add=True)
     #precalculated hyperlink value to quickly serve users
     file_url = models.CharField(max_length=maxFileNameLength, blank=True)
-    #how is the document saved.
+    #how is the document saved, fully local settings.
+    last_file_update = models.DateTimeField(blank=True, default=datetime(1970, 1, 1, 1, 00))
     existance_type = models.IntegerField(
         choices=existanceType.choices,
         default=existanceType.LOCAL,
