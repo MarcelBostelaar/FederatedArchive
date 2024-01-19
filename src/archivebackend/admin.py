@@ -18,23 +18,23 @@ class PeerAdmin(admin.ModelAdmin):
 class LanguageAdmin(admin.ModelAdmin):
     list_display = ('iso_639_code', 'english_name', "endonym", "child_language_of")
     search_fields = ['iso_639_code', 'english_name', "endonym", "child_language_of"]
-    readonly_fields=('remote_id', "from_remote")
+    readonly_fields=["from_remote"]
 
 class AuthorAdmin(admin.ModelAdmin):
     list_display = ('name', 'birthday')
     search_fields = ['name', 'birthday']
-    readonly_fields=('remote_id', "from_remote")
+    readonly_fields=["from_remote"]
 
 class AuthorDescriptionTranslationAdmin(admin.ModelAdmin):
     list_display = ('describes', 'language', 'name_translation', 'description')
     search_fields = ['describes' 'name_translation']
     list_filter = ["language"]
-    readonly_fields=('remote_id', "from_remote")
+    readonly_fields=["from_remote"]
 
 class AbstractDocumentAdmin(admin.ModelAdmin):
     list_display = ('human_readable_id', 'original_publication_date', 'all_authors')
     search_fields = ['human_readable_id', 'original_publication_date', 'all_authors']
-    readonly_fields=('remote_id', "from_remote")
+    readonly_fields=["from_remote"]
 
     def all_authors(self, obj):
         return ", ".join([p.name for p in obj.authors.all()])
@@ -43,7 +43,7 @@ class AbstractDocumentDescriptionTranslationAdmin(admin.ModelAdmin):
     list_display = ('describes', 'language', 'title_translation', 'description')
     search_fields = ['describes', 'title_translation']
     list_filter = ["language"]
-    readonly_fields=('remote_id', "from_remote")
+    readonly_fields=["from_remote"]
 
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
@@ -86,7 +86,7 @@ class LocalEditionAdmin(admin.ModelAdmin):
     list_display = ('edition_of', 'publication_date', 'language', 'file_format', 'open_file', 'title', 'all_authors', 'description', "is_fork")
     search_fields = ['edition_of', 'publication_date', 'title', 'all_authors']
     list_filter = ["language", 'file_format']
-    readonly_fields=('remote_id', "from_remote")
+    readonly_fields=["from_remote"]
 
     form = LocalEditionForm
 
