@@ -12,6 +12,7 @@ Software for maintaining an archive of documents in arbitrary formats, in a fede
 [] Rectify/unify documents
 [] Simple user system?
 [] Docker setup
+[] User submissions
 [] Fork functionality
 [] git version control for individual editions
 [] Pull request-analogue system
