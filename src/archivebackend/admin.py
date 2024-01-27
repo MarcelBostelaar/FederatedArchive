@@ -126,10 +126,10 @@ class LocalEditionAdmin(admin.ModelAdmin):
         return qs.filter(existance_type__in=[existanceType.LOCAL, existanceType.LOCALFORK])
     
 
-admin.site.register(RemotePeer, PeerAdmin)
-admin.site.register(Language, LanguageAdmin)
-admin.site.register(Author, AuthorAdmin)
-admin.site.register(AuthorDescriptionTranslation, AuthorDescriptionTranslationAdmin)
-admin.site.register(AbstractDocument, AbstractDocumentAdmin)
-admin.site.register(AbstractDocumentDescriptionTranslation, AbstractDocumentDescriptionTranslationAdmin)
-admin.site.register(LocalEdition, LocalEditionAdmin)
+# admin.site.register(RemotePeer, PeerAdmin)
+# admin.site.register(Language, LanguageAdmin)
+# admin.site.register(Author, AuthorAdmin)
+# admin.site.register(AuthorDescriptionTranslation, AuthorDescriptionTranslationAdmin)
+# admin.site.register(AbstractDocument, AbstractDocumentAdmin)
+# admin.site.register(AbstractDocumentDescriptionTranslation, AbstractDocumentDescriptionTranslationAdmin)
+# admin.site.register(LocalEdition, LocalEditionAdmin)
