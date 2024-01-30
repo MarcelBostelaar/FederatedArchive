@@ -1,43 +1,8 @@
 import datetime
 import string
-from typing import Generic, Type
-import uuid
 from django.db import models
-from django.dispatch import receiver
-from django.db.models.signals import pre_save
 from archivebackend.constants import *
-
-#Abstract class
-class RemoteModel(models.Model):
-    """Contains fields and functionality to turn a model remote mirrorable"""
-    from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
-    # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky).
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
-    class Meta:
-        abstract = True
-
-#Abstract class
-def AliasableModel(nameOfOwnClass: string):
-    """Contains fields and functionality to allow an entry to be an alias of another entry of the same type"""
-    class AliasableModel_(RemoteModel):
-        alias = models.ManyToManyField(nameOfOwnClass)
-
-        # @classmethod
-        # def fix_aliases(cls):
-        #     cls.objects.
-        
-        #TODO
-        #Dynamically create a through class and add it as a through class
-        #Add that class to the globals through globals()
-        #Implement specific rectification operations in this through class
-        #Add utility functions on aliasable model to operate the alias functionality for user friendlyness
-        #This way each Aliasable model has its own through table with automatic rectifications
-        #do add an identity alias for each entry to make querying the set of all valid choices easy
-
-        class Meta:
-            abstract = True
-    return AliasableModel_
+from archivebackend.modelsAbstract import AliasableModel, RemoteModel
 
 class RemotePeer(RemoteModel):
     site_name = models.CharField(max_length=titleLength)
@@ -58,7 +23,7 @@ class Language(RemoteModel):
     def __str__(self) -> str:
         return self.iso_639_code + " - " + self.english_name
 
-class Author(AliasableModel("Author")):
+class Author(RemoteModel, AliasableModel("Author")):
     name = models.CharField(max_length=authorLength)
     birthday = models.DateField(blank=True, null=True)
 
@@ -78,7 +43,7 @@ class AuthorDescriptionTranslation(RemoteModel):
         unique_together = ["describes", "language"]
 
 
-class AbstractDocument(AliasableModel("AbstractDocument")):
+class AbstractDocument(RemoteModel, AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.
     A workable id system must be established on a per-project basis. 
     A possibility is <the author + year + original book title in the original language, in common latin transliteration>

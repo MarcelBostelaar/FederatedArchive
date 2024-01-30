@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
+import enum
 import os
 from pathlib import Path
 
@@ -82,6 +83,16 @@ DATABASES = {
     }
 }
 
+class DatabaseBackend(enum.Enum):
+    POSTGRESQL = 0
+    MARIADB = 1
+    MYSQL = 2
+    ORACLE = 3
+    SQLITE = 4
+    CUSTOM = 5
+
+
+DATABASETYPE = DatabaseBackend.SQLITE
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
