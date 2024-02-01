@@ -7,17 +7,30 @@ Software for maintaining an archive of documents in arbitrary formats, in a fede
 ## Backend
 - [x] Basic archive system, with multiple editions per archival ID (book, publication, etc)
 - [x] Mirror and federation functionality
-- [] Milestine versioning system
+- [] Milestone versioning system
 - [] Plugin system for automatically generating other formats from existing formats
-- [] Rectify/unify authors
-- [] Rectify/unify documents
+- [x] ~~Rectify/unify authors~~
+- [x] ~~Rectify/unify documents~~
+- [x] Generic alias system
 - [] Simple user system?
 - [] Docker setup
+
+### Future features
 - [] User submissions
-- [] Fork functionality
-- [] git version control for individual editions
-- [] Pull request-analogue system
+- [] git version control for individual git editions?
+- [] Pull request-analogue system?
+- [] Semantically driven rectification of authors/documents/etc
 
 ## Frontend
 
 - [] Basic search by author and title
+- [] Document info pages
+
+### Future features
+- [] Document search
+
+## Admin
+- [] Rectify/unify authors
+- [] Rectify/unify documents
+- [] Simple user system?
+- [] Fork/copy functionality
