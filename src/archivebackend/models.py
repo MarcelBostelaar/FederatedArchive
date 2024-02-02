@@ -36,7 +36,7 @@ class FileFormat(models.Model):
     def __str__(self) -> str:
         return self.format
 
-class Language(RemoteModel):
+class Language(RemoteModel): #Should this even be remoteable? Should it be aliasable?
     iso_639_code = models.CharField(max_length=10, unique=True)
     english_name = models.CharField(max_length=40)
     endonym = models.CharField(max_length=40)
@@ -134,11 +134,6 @@ class Revision(RemoteModel):
     is_backup_revision = models.BooleanField(blank=True, default=False)
     date = models.DateTimeField(blank=True, auto_now_add=True)
     entry_file = models.ForeignKey("File", null=True, blank=True, on_delete=models.CASCADE)
-    existance_type = models.IntegerField(
-        choices=existanceType.choices,
-        default=existanceType.LOCAL,
-        blank=True
-    )
 
     @staticmethod
     def cleanOldRevisions():
