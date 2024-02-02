@@ -15,8 +15,18 @@ class RemoteModel(models.Model):
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
+    @classmethod
+    def __synchableFields(cls):
+        return [x for x in cls._meta.get_fields() if x.name not in cls._meta.exclude_fields_from_synch]
+
+    @classmethod
+    def createSyncFiles(cls):
+        
+
+
     class Meta:
         abstract = True
+        exclude_fields_from_synch = []
 
 def _AbstractAliasThrough(aliasedClassName, throughname):
     """The model from which each through table for aliasing derives, containing all functionality."""
