@@ -20,6 +20,7 @@ class RemotePeer(RemoteModel):
     mirror_files = models.BooleanField(blank=True, default=False)
     peers_of_peer = models.BooleanField(blank=True, default=True)
     last_checkin = models.DateTimeField()
+    is_this_site = models.BooleanField(blank=True, default=False)
 
     def __str__(self) -> str:
         return self.site_name

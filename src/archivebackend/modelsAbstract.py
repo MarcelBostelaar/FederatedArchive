@@ -4,6 +4,7 @@ import os
 import re
 import string
 import uuid
+from django import apps
 from django.apps import AppConfig
 from django.db import models
 from django.db.models import Subquery, F
@@ -13,10 +14,10 @@ from archivebackend.constants import *
 from archivebackend.settings import CustomDBAliasIndirectionFix, CustomDBIdentityCreationCommand
 from django.core import serializers
 
-
-class _RemoteModel(models.Model):
+class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
     from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
+    last_updated = models.DateTimeField(blank=True, auto_now_add=True) #TODO add trigger that updates this field when any synchable field is updated
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
@@ -24,33 +25,40 @@ class _RemoteModel(models.Model):
     def __synchableFields(cls):
         return [x for x in cls._meta.get_fields() if x.name not in cls._meta.exclude_fields_from_synch]
 
-    @staticmethod
-    def __writeSyncFile(set, basename, fieldsToSync):
+    @classmethod
+    def __writeSyncFile(cls, set, fileNameGenerator):
         json_serializer = serializers.get_serializer("json")()
+        fieldsToSync = cls.__synchableFields()
+        classname = cls.__name__
         file = None
+        createdFiles = []
+        fileNum = 1
+        objects_in_file_counter = 0
         for entry in set.iterator():
-            fileNum = 0
-            counter = 0
-            if counter == 0:
-                file = open(basename + (fileNum + 1) + ".json", "w")
+            if objects_in_file_counter == 0:
+                filename = fileNameGenerator(classname, fileNum)
+                createdFiles += [filename]
+                file = open(os.path.join(syncFileFolder, filename), "w")
                 file.write("[")
-            if counter == constants.maxSyncFileItems:
+            if objects_in_file_counter == constants.maxSyncFileItems:
                 file.write("]")
                 file.close()
-                counter = 0
+                objects_in_file_counter = 0
                 fileNum += 1
 
             file.write(json_serializer.serialize(entry, fields=fieldsToSync))
 
-            if counter < constants.maxFileNameLength:
+            if objects_in_file_counter < constants.maxFileNameLength:
                 file.write(",")
-            counter += 1
+            objects_in_file_counter += 1
+        
+        file = open(os.path.join(syncFileFolder, fileNameGenerator(classname, "index")), "w")
+        file.write("[" + ",".join(createdFiles) + "]")
+        file.close()
 
     @classmethod
     def createSyncFiles(cls):
         classname = cls.__name__
-        localFile = os.path.join(constants.syncFileFolder, "local" + classname)
-        peersOfPeersFile = os.path.join(constants.syncFileFolder, "peersAndLocal" + classname)
 
         if not os.path.exists(constants.syncFileFolder):
             os.makedirs(constants.syncFileFolder)
@@ -59,9 +67,23 @@ class _RemoteModel(models.Model):
         for i in os.listdir(constants.syncFileFolder):
             if matches(i):
                 os.remove(i)
-        fieldsToSync = cls.__synchableFields()
-        cls.__writeSyncFile(cls.objects.all(), peersOfPeersFile, fieldsToSync)
-        cls.__writeSyncFile(cls.objects.filter(from_remote = constants.localRemoteID), localFile, fieldsToSync)
+        cls.__writeSyncFile(cls.objects.all(), peersOfPeersFileBase)
+        cls.__writeSyncFile(cls.objects.filter(is_this_site = True), localFileBase)
+
+    @classmethod
+    def pullFromRemote(cls, remote):
+        if remote.peers_of_peer:
+            indexFile = peersOfPeersFileBase(cls.__name__, "index")
+        else:
+            indexFile = localFileBase(cls.__name__, "index")
+        #TOOD pull changes, check if it doesnt override newer version
+        raise NotImplementedError()
+
+    @classmethod
+    def pullFromAllRemotes(cls):
+        Remoteclass = apps.get_model(app_label="archiveBackend", model_name="Remote")
+        for remote in Remoteclass.objects.filter(is_this_site = False):
+            cls.pullFromRemote(remote)
 
     class Meta:
         abstract = True
