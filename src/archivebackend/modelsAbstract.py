@@ -1,15 +1,20 @@
 import inspect
 from multiprocessing import connection
+import os
+import re
 import string
 import uuid
 from django.apps import AppConfig
 from django.db import models
 from django.db.models import Subquery, F
 from ArchiveSite.settings import DATABASETYPE, DatabaseBackend
+from archivebackend import constants
 from archivebackend.constants import *
 from archivebackend.settings import CustomDBAliasIndirectionFix, CustomDBIdentityCreationCommand
+from django.core import serializers
 
-class RemoteModel(models.Model):
+
+class _RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
     from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
@@ -19,10 +24,44 @@ class RemoteModel(models.Model):
     def __synchableFields(cls):
         return [x for x in cls._meta.get_fields() if x.name not in cls._meta.exclude_fields_from_synch]
 
+    @staticmethod
+    def __writeSyncFile(set, basename, fieldsToSync):
+        json_serializer = serializers.get_serializer("json")()
+        file = None
+        for entry in set.iterator():
+            fileNum = 0
+            counter = 0
+            if counter == 0:
+                file = open(basename + (fileNum + 1) + ".json", "w")
+                file.write("[")
+            if counter == constants.maxSyncFileItems:
+                file.write("]")
+                file.close()
+                counter = 0
+                fileNum += 1
+
+            file.write(json_serializer.serialize(entry, fields=fieldsToSync))
+
+            if counter < constants.maxFileNameLength:
+                file.write(",")
+            counter += 1
+
     @classmethod
     def createSyncFiles(cls):
-        
+        classname = cls.__name__
+        localFile = os.path.join(constants.syncFileFolder, "local" + classname)
+        peersOfPeersFile = os.path.join(constants.syncFileFolder, "peersAndLocal" + classname)
 
+        if not os.path.exists(constants.syncFileFolder):
+            os.makedirs(constants.syncFileFolder)
+
+        matches = lambda x: re.compile(classname + r"[0-9]+\.json", re.IGNORECASE).search(x) is not None
+        for i in os.listdir(constants.syncFileFolder):
+            if matches(i):
+                os.remove(i)
+        fieldsToSync = cls.__synchableFields()
+        cls.__writeSyncFile(cls.objects.all(), peersOfPeersFile, fieldsToSync)
+        cls.__writeSyncFile(cls.objects.filter(from_remote = constants.localRemoteID), localFile, fieldsToSync)
 
     class Meta:
         abstract = True
