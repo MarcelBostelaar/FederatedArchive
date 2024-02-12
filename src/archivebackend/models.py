@@ -144,7 +144,8 @@ class File(RemoteBackupModel):
         raise NotImplementedError()
 
 class AutoGenerationConfig(models.Model):
-    pass
+    name = models.CharField(max_length=100)
+    script_name = models.CharField(max_length=100)
 
 class AutoGeneration(models.Model):
     config = models.ForeignKey(AutoGenerationConfig, on_delete=models.CASCADE)
