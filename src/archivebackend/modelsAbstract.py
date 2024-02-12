@@ -1,3 +1,4 @@
+import datetime
 import inspect
 from multiprocessing import connection
 import os
@@ -6,21 +7,39 @@ import string
 import uuid
 from django import apps
 from django.apps import AppConfig
-from django.db import models
+from django.db import IntegrityError, models
 from django.db.models import Subquery, F
 from ArchiveSite.settings import DATABASETYPE, DatabaseBackend
 from archivebackend import constants
 from archivebackend.constants import *
 from archivebackend.settings import CustomDBAliasIndirectionFix, CustomDBIdentityCreationCommand
 from django.core import serializers
+from urllib.request import urlopen 
+import json 
+
+def readJsonFromUrl(url):
+    response = urlopen(url)
+    data_json = json.loads(response.read())
+    return data_json
 
 class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
     from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
-    last_updated = models.DateTimeField(blank=True, auto_now_add=True) #TODO add trigger that updates this field when any synchable field is updated
+    last_updated = models.DateTimeField(blank=True, auto_now_add=True)
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
+    def save(self, *args, **kwargs):
+        if self.id is not None:
+            fields = self.__synchableFields().remove("last_updated")
+            old = self.objects.get(self.id)
+
+            for key in fields:
+                if old[key] != self[key]:
+                    self.last_updated = datetime.datetime.now()
+                    break
+        super(self.__class__, self).save(*args, **kwargs)
+
     @classmethod
     def __synchableFields(cls):
         return [x for x in cls._meta.get_fields() if x.name not in cls._meta.exclude_fields_from_synch]
@@ -70,14 +89,37 @@ class RemoteModel(models.Model):
         cls.__writeSyncFile(cls.objects.all(), peersOfPeersFileBase)
         cls.__writeSyncFile(cls.objects.filter(is_this_site = True), localFileBase)
 
+    @staticmethod
+    def __handlePulledItem(cls, item):
+        if cls.objects.exists(id=item.id):
+            # Item with this is exists in the db
+            dbobj = cls.objects.get(id=item.id)
+            if dbobj.last_updated < item.last_updated:
+                # Remote has a newer version of this item
+                delattr(item, 'id')
+                for (key, value) in item:
+                    setattr(dbobj, key, value)
+                dbobj.save()
+        else:
+            # Item does not exist in this db
+            obj = object.__new__(cls)
+            for (key, value) in item:
+                setattr(dbobj, key, value)
+            obj.save()
+
     @classmethod
     def pullFromRemote(cls, remote):
+        ownRemote = apps.get_model(app_label="archiveBackend", model_name="Remote").objects.filter(is_this_site = True)
         if remote.peers_of_peer:
             indexFile = peersOfPeersFileBase(cls.__name__, "index")
         else:
             indexFile = localFileBase(cls.__name__, "index")
-        #TOOD pull changes, check if it doesnt override newer version
-        raise NotImplementedError()
+        index_json = readJsonFromUrl(remoteFileLocationBase(remote, indexFile))
+        for file in index_json:
+            all_data = readJsonFromUrl(remoteFileLocationBase(remote, file))
+            for item in all_data:
+                if item.id != ownRemote.id:
+                    cls.__handlePulledItem(cls, item)
 
     @classmethod
     def pullFromAllRemotes(cls):
@@ -91,7 +133,7 @@ class RemoteModel(models.Model):
 
 def _AbstractAliasThrough(aliasedClassName, throughname):
     """The model from which each through table for aliasing derives, containing all functionality."""
-    class AbstractAliasThrough_(models.Model):
+    class AbstractAliasThrough_(RemoteModel):
         origin = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_origin_end")
         target = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_target_end")
 
@@ -104,16 +146,17 @@ def _AbstractAliasThrough(aliasedClassName, throughname):
             """Operation which fixes any missing aliases. Expensive operation."""
             #Note, it is more performant to do this in a single raw query, but that will break parity with different database backends
             #Future feature, add database specific raw implementations for performance
+            ownRemote = apps.get_model(app_label="archiveBackend", model_name="Remote").objects.filter(is_this_site = True)
 
             with connection.cursor() as cursor:
                 #Inserting reserve indirections
                 match DATABASETYPE:
                     case DatabaseBackend.SQLITE:
-                        cursor.execute("""insert or ignore into {} (target, origin)
+                        cursor.execute("""insert or ignore into {tablename} (target, origin, from_remote, last_updated)
                                             select 
-                                                origin, target
+                                                origin, target, %s, DATE('now')
                                             from
-                                            (SELECT origin, target FROM {} WHERE target != origin)""".format(throughname, throughname))
+                                            (SELECT origin, target FROM {tablename} WHERE target != origin)""".format(tablename = throughname), [ownRemote.id])
 
                     case DatabaseBackend.CUSTOM:
                         CustomDBAliasIndirectionFix()
@@ -124,13 +167,13 @@ def _AbstractAliasThrough(aliasedClassName, throughname):
                 #Join indirect aliases
                 match DATABASETYPE:
                     case DatabaseBackend.SQLITE:
-                        cursor.execute("""insert or ignore into {} (origin, target)
+                        cursor.execute("""insert or ignore into {tablename} (origin, target, from_remote, last_updated)
                                             select 
-                                                origin, target
+                                                origin, target, %s, DATE('now')
                                             from
                                             (SELECT a.origin, b.target
-                                            FROM {} as a
-                                            INNER JOIN {} as b ON a.target = b.origin);""".format(throughname,throughname,throughname))
+                                            FROM {tablename} as a
+                                            INNER JOIN {tablename} as b ON a.target = b.origin);""".format(tablename = throughname), [ownRemote.id])
 
                     case DatabaseBackend.CUSTOM:
                         CustomDBAliasIndirectionFix()
@@ -142,17 +185,19 @@ def _AbstractAliasThrough(aliasedClassName, throughname):
                 #Creating identity entries
                 match DATABASETYPE:
                     case DatabaseBackend.SQLITE:
-                        cursor.execute("""INSERT INTO {} (a, b)
-                                            SELECT a, a FROM (
-                                                SELECT a FROM {}
-                                                EXCEPT
-                                                SELECT a FROM {} WHERE a = b
-                                            );""")
+                        cursor.execute("""INSERT OR IGNORE INTO {tablename} (origin, target)
+                                            SELECT origin, origin, %s, DATE('now') FROM (
+                                                SELECT DISTINCT origin FROM {tablename};
+                                            );""".format(tablename = throughname), [ownRemote.id])
                     case DatabaseBackend.CUSTOM:
                         CustomDBIdentityCreationCommand()
                     case _:
-                        to_be_created = cls.objects.exclude(origin__in=Subquery(cls.objects.filter(origin=F("target"))))
-                        cls.objects.bulk_create([_AbstractAliasThrough(origin=to_be_created.origin, target=to_be_created.origin)])
+                        allValues = cls.objects.values('origin').distinct()
+                        for i in allValues:
+                            try:
+                                cls.create(origin = i.origin, target = i.origin, from_remote=ownRemote)
+                            except IntegrityError:
+                                pass
 
 
     return AbstractAliasThrough_
