@@ -28,6 +28,10 @@ class RemoteModel(models.Model):
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
+    class Meta:
+        abstract = True
+        exclude_fields_from_synch = []
+    
     def save(self, *args, **kwargs):
         if self.id is not None:
             fields = self.__synchableFields().remove("last_updated")
@@ -88,10 +92,17 @@ class RemoteModel(models.Model):
         cls.__writeSyncFile(cls.objects.all(), peersOfPeersFileBase)
         cls.__writeSyncFile(cls.objects.filter(is_this_site = True), localFileBase)
 
+    def __overrideFromRemote(self):
+        """Indicates whether or not this item may be overridden with new data from a remote source. Overridden in child classes"""
+        return True
+
     @staticmethod
     def __handlePulledItem(cls, item):
         if cls.objects.exists(id=item.id):
             # Item with this is exists in the db
+            if not item.__overrideFromRemote():
+                #Dont override existing with new data, to prevent malicious propagation in backup versions
+                return
             dbobj = cls.objects.get(id=item.id)
             if dbobj.last_updated < item.last_updated:
                 # Remote has a newer version of this item
@@ -126,9 +137,6 @@ class RemoteModel(models.Model):
         for remote in Remoteclass.objects.filter(is_this_site = False):
             cls.pullFromRemote(remote)
 
-    class Meta:
-        abstract = True
-        exclude_fields_from_synch = []
 
 def _AbstractAliasThrough(aliasedClassName):
     """The model from which each through table for aliasing derives, containing all functionality."""
@@ -214,3 +222,18 @@ def AliasableModel(nameOfOwnClass: string):
         class Meta:
             abstract = True
     return AliasableModel_
+
+class RemoteBackupModel(RemoteModel):
+    """
+    Backupable Remote models may be protected from being overridden during a sync
+    to prevent propagation of malicious edits in a root archive to its backups, 
+    such as with a hostile takeover of the server."""
+    is_backup_revision = models.BooleanField(blank=True, default=False)
+
+    class Meta:
+        abstract = True
+
+    def __overrideFromRemote(self):
+        """Indicated whether or not this instance should be overridden with data from a remote source"""
+        #If the item is marked as a backup it should never be overridden with new data from remote
+        return not self.is_backup_revision
