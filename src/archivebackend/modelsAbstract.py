@@ -12,7 +12,6 @@ from django.db.models import Subquery, F
 from ArchiveSite.settings import DATABASETYPE, DatabaseBackend
 from archivebackend import constants
 from archivebackend.constants import *
-from archivebackend.settings import CustomDBAliasIndirectionFix, CustomDBIdentityCreationCommand
 from django.core import serializers
 from urllib.request import urlopen 
 import json 
@@ -131,7 +130,7 @@ class RemoteModel(models.Model):
         abstract = True
         exclude_fields_from_synch = []
 
-def _AbstractAliasThrough(aliasedClassName, throughname):
+def _AbstractAliasThrough(aliasedClassName):
     """The model from which each through table for aliasing derives, containing all functionality."""
     class AbstractAliasThrough_(RemoteModel):
         origin = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_origin_end")
@@ -145,61 +144,38 @@ def _AbstractAliasThrough(aliasedClassName, throughname):
         def fixAllAliases(cls):
             """Operation which fixes any missing aliases. Expensive operation."""
             #Note, it is more performant to do this in a single raw query, but that will break parity with different database backends
-            #Future feature, add database specific raw implementations for performance
             ownRemote = apps.get_model(app_label="archiveBackend", model_name="Remote").objects.filter(is_this_site = True)
 
             with connection.cursor() as cursor:
-                #Inserting reserve indirections
-                match DATABASETYPE:
-                    case DatabaseBackend.SQLITE:
-                        cursor.execute("""insert or ignore into {tablename} (target, origin, from_remote, last_updated)
-                                            select 
-                                                origin, target, %s, DATE('now')
-                                            from
-                                            (SELECT origin, target FROM {tablename} WHERE target != origin)""".format(tablename = throughname), [ownRemote.id])
+                #Creating identity indirections
+                #Needs only be done once per call because the other acts do not introduce new ids
+                allValues = cls.objects.values('origin').distinct()
+                for i in allValues:
+                    try:
+                        cls.create(origin = i.origin, target = i.origin, from_remote=ownRemote)
+                    except IntegrityError:
+                        pass
 
-                    case DatabaseBackend.CUSTOM:
-                        CustomDBAliasIndirectionFix()
-                    case _:
-                        #TODO
-                        raise NotImplementedError("No database agnostic implementation made for inserting reverse indirections.")
+                didChange = True
+                while didChange: #Repeat until no new entries have been created
+                    #START loop
+                    didChange = False
+                    for item in cls.objects.exclude(origin=F('target')):
+                        #Inserting reserve indirections
+                        try:
+                            cls.create(origin = item.target, target = item.origin, from_remote=ownRemote)
+                            didChange = True
+                        except IntegrityError:
+                            pass
 
-                #Join indirect aliases
-                match DATABASETYPE:
-                    case DatabaseBackend.SQLITE:
-                        cursor.execute("""insert or ignore into {tablename} (origin, target, from_remote, last_updated)
-                                            select 
-                                                origin, target, %s, DATE('now')
-                                            from
-                                            (SELECT a.origin, b.target
-                                            FROM {tablename} as a
-                                            INNER JOIN {tablename} as b ON a.target = b.origin);""".format(tablename = throughname), [ownRemote.id])
-
-                    case DatabaseBackend.CUSTOM:
-                        CustomDBAliasIndirectionFix()
-                    case _:
-                        #TODO
-                        raise NotImplementedError("No database agnostic implementation made for fixing indirection.")
-                        
-
-                #Creating identity entries
-                match DATABASETYPE:
-                    case DatabaseBackend.SQLITE:
-                        cursor.execute("""INSERT OR IGNORE INTO {tablename} (origin, target)
-                                            SELECT origin, origin, %s, DATE('now') FROM (
-                                                SELECT DISTINCT origin FROM {tablename};
-                                            );""".format(tablename = throughname), [ownRemote.id])
-                    case DatabaseBackend.CUSTOM:
-                        CustomDBIdentityCreationCommand()
-                    case _:
-                        allValues = cls.objects.values('origin').distinct()
-                        for i in allValues:
+                        #Join indirect aliases
+                        for indirection in item.target.alias_origin_end:
                             try:
-                                cls.create(origin = i.origin, target = i.origin, from_remote=ownRemote)
+                                cls.create(origin = item.origin, target = indirection.target, from_remote=ownRemote)
+                                didChange = True
                             except IntegrityError:
                                 pass
-
-
+                    #END loop
     return AbstractAliasThrough_
 
 def AliasableModel(nameOfOwnClass: string):
@@ -209,7 +185,7 @@ def AliasableModel(nameOfOwnClass: string):
 
     #Create accompanying through tables for every class
     throughTableName = nameOfOwnClass + "AliasThrough"
-    generated = type(throughTableName, (_AbstractAliasThrough(nameOfOwnClass, throughTableName), ),
+    generated = type(throughTableName, (_AbstractAliasThrough(nameOfOwnClass), ),
                      {"__module__" : __name__, "__qualname__" : throughTableName})
     globals()[generated.__name__] = generated
 
