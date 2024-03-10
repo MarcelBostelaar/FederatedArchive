@@ -136,6 +136,7 @@ class Revision(RemoteBackupModel):
 class File(RemoteBackupModel):
     belongs_to = models.ForeignKey(Revision, on_delete=models.CASCADE, related_name="files")
     file_format = models.ForeignKey(FileFormat, on_delete=models.CASCADE)
+    filename = models.CharField(max_length=maxFileNameLength)
 
     #TODO implement on delete clean file methodes
 
