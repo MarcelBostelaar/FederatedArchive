@@ -4,7 +4,7 @@ import importlib
 import os
 
 import requests
-from archivebackend.models import Edition, Revision
+from archivebackend.models import AutoGenerationConfig, Edition, Revision
 
 generationFunctions = {}
 
@@ -25,7 +25,7 @@ def getLatestRevision(sourceEdition):
         latest_revision = Revision.objects.filter(belongs_to=sourceEdition).latest('date')
         return latest_revision
     except Revision.DoesNotExist:
-        return None
+        raise Exception("No revision found")
     
 def ensureFilesExistLocally(revision):
     # Ensure that files associated with the given revision exist locally
@@ -40,18 +40,9 @@ def ensureFilesExistLocally(revision):
             downloadFile(getFileUrl(file_record), file_path)
 
 def getFileUrl(file_record):
-    # Implementation for getting the file URL from the file record
-    # Assumes a file format attribute in the FileFormat model
-
     file_format = file_record.file_format
-
-    # Replace 'example.com' with the actual base URL for your files
     base_url = file_record.from_remote.site_adress
-
-    # Replace 'file_extension' with the actual attribute in your FileFormat model
     file_extension = file_format.file_extension
-
-    # Construct the full file URL
     file_url = f"{base_url}{file_record.file_format.name}.{file_extension}"
 
     return file_url
@@ -73,5 +64,14 @@ class BasePlugin:
         raise NotImplementedError("Subclasses must implement the generate method. They should take the files, generate new ones, and put them into the database correctly.")
 
 def load_plugins(plugin_folder):
-    #TODO reimplemtn once you have brainpower. Must load folders not files. Iterate through all generation configs to see if they exist
-    raise NotImplemented()
+    for config in AutoGenerationConfig.objects.all():
+        plugin_name = config.script_name
+        module_name = plugin_name.lower()
+        module_path = os.path.join(plugin_folder, module_name)
+        if os.path.exists(module_path):
+            module = importlib.import_module(module_name)
+            generationFunctions[plugin_name] = module.generate
+            if not issubclass(module.plugin, BasePlugin):
+                raise Exception("Plugin not a subclass of BasePlugin: " + module_name)
+        else:
+            raise Exception("Plugin not found: " + module_name)

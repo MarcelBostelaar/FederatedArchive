@@ -1,6 +1,5 @@
 from django.apps import AppConfig
 
-from archivebackend.autogeneration import load_plugins
 
 
 class ArchivebackendConfig(AppConfig):
@@ -8,4 +7,5 @@ class ArchivebackendConfig(AppConfig):
     name = 'archivebackend'
 
     def ready(self):
-        load_plugins()
+        from archivebackend.autogeneration import load_plugins
+        load_plugins("plugins")

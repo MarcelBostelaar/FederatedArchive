@@ -23,29 +23,34 @@ def readJsonFromUrl(url):
 
 class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
-    from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
+    from_remote = models.ForeignKey("RemotePeer", blank=False, null=False, on_delete=models.CASCADE)
     last_updated = models.DateTimeField(blank=True, auto_now_add=True)
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    exclude_fields_from_synch = []
     
     class Meta:
         abstract = True
-        exclude_fields_from_synch = []
     
     def save(self, *args, **kwargs):
         if self.id is not None:
-            fields = self.__synchableFields().remove("last_updated")
-            old = self.objects.get(self.id)
+            fields = self.__synchableFields()
+            fields = [x for x in fields if x != "last_updated"]
 
-            for key in fields:
-                if old[key] != self[key]:
-                    self.last_updated = datetime.datetime.now()
-                    break
-        super(self.__class__, self).save(*args, **kwargs)
+            if self._state.adding: #new instance
+                self.last_updated = datetime.datetime.now()
+            else:
+                old = type(self).objects.get(id = self.id)
+
+                for key in fields:
+                    if getattr(old, key) != getattr(self ,key):
+                        self.last_updated = datetime.datetime.now()
+                        break
+        super(RemoteModel, self).save(*args, **kwargs)
 
     @classmethod
     def __synchableFields(cls):
-        return [x for x in cls._meta.get_fields() if x.name not in cls._meta.exclude_fields_from_synch]
+        return [x.name for x in cls._meta.fields if x.name not in cls.exclude_fields_from_synch]
 
     @classmethod
     def __writeSyncFile(cls, set, fileNameGenerator):

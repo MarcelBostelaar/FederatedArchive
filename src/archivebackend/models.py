@@ -22,8 +22,7 @@ class RemotePeer(RemoteModel):
     last_checkin = models.DateTimeField(blank=True, default=datetime.datetime(1970, 1, 1, 0, 0, 0, 0))
     is_this_site = models.BooleanField(blank=True, default=False)
 
-    class Meta:
-        exclude_fields_from_synch = ["is_this_site", "last_checkin", "peers_of_peer", "mirror_files"]
+    exclude_fields_from_synch = ["is_this_site", "last_checkin", "peers_of_peer", "mirror_files"]
 
     def __str__(self) -> str:
         return self.site_name
@@ -68,15 +67,15 @@ class AuthorDescriptionTranslation(RemoteModel):
     class Meta:
         unique_together = ["describes", "language"]
 
-
 class AbstractDocument(RemoteModel, AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.
     """
     original_publication_date = models.DateField(blank=True, null=True)
     authors = models.ManyToManyField(Author)
+    fallback_name = models.CharField(max_length=maxFileNameLength, unique=True)
 
     def __str__(self) -> str:
-        return self.human_readable_id
+        return self.fallback_name
 
 class AbstractDocumentDescriptionTranslation(RemoteModel):
     """Provides functionality for adding titles and descriptions of abstract documents in multiple languages"""
@@ -88,7 +87,6 @@ class AbstractDocumentDescriptionTranslation(RemoteModel):
     def __str__(self) -> str:
         return self.title_translation + " - (" + self.language.iso_639_code + ")"
 
-
 class Edition(RemoteModel):
     """An edition is a concrete form of an abstract document. A specific printing, a specific digital edition or layout, a specific file format, with a specific language
     It can have additional authors (such as translators, preface writers, etc). It represents the whole history of this document, 
@@ -96,7 +94,7 @@ class Edition(RemoteModel):
     unless explicit differentiation is desired such as archiving several historic prints of the same general book."""
     edition_of = models.ForeignKey(AbstractDocument, on_delete=models.CASCADE, related_name="editions")
     publication_date = models.DateField(blank=True, null=True)
-    language = models.ManyToManyField(Language, on_delete=models.CASCADE)
+    language = models.ForeignKey(Language, on_delete=models.CASCADE)
     additional_authors = models.ManyToManyField(Author, blank=True)
     
     title = models.CharField(max_length=titleLength)
@@ -112,16 +110,14 @@ class Edition(RemoteModel):
     file_url = models.CharField(max_length=maxFileNameLength, blank=True)
     last_file_update = models.DateTimeField(blank=True, default=datetime.datetime(1970, 1, 1, 1, 00))
 
-    class Meta:
-        exclude_fields_from_synch = ["existance_type"]
+    exclude_fields_from_synch = ["existance_type"]
     
     def save(self, *args, **kwargs):
         #TODO disallow making existance type go from anything else to Local, local forks must be explicitly made as new instances.
         super(Edition, self).save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return self.title + " - (" + self.language.iso_639_code + ") - " + self.file_format
-
+        return self.title + " - (" + self.language.iso_639_code + ")"
 
 class Revision(RemoteBackupModel):
     belongs_to = models.ForeignKey(Edition, on_delete=models.CASCADE, related_name="revisions")
@@ -131,7 +127,6 @@ class Revision(RemoteBackupModel):
     @staticmethod
     def cleanOldRevisions():
         raise NotImplementedError()
-
 
 class File(RemoteBackupModel):
     belongs_to = models.ForeignKey(Revision, on_delete=models.CASCADE, related_name="files")
