@@ -25,7 +25,7 @@ class RemotePeer(RemoteModel):
     exclude_fields_from_synch = ["is_this_site", "last_checkin", "peers_of_peer", "mirror_files"]
 
     def __str__(self) -> str:
-        return self.site_name
+        return self.site_name + " - " + self.site_adress
     
 class FileFormat(RemoteModel, AliasableModel("FileFormat")):
     format = models.CharField(max_length=10, unique=True)
@@ -49,11 +49,13 @@ class Language(RemoteModel, AliasableModel("Language")):
         return self.iso_639_code + " - " + self.english_name
 
 class Author(RemoteModel, AliasableModel("Author")):
-    name = models.CharField(max_length=authorLength)
+    fallback_name = models.CharField(max_length=authorLength)
     birthday = models.DateField(blank=True, null=True)
 
     def __str__(self) -> str:
-        return self.name + " - " + str(self.birthday)
+        if self.birthday is not None:
+            return self.fallback_name + " - " + str(self.birthday)
+        return self.fallback_name
 
 class AuthorDescriptionTranslation(RemoteModel):
     describes = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="descriptions")
@@ -63,9 +65,6 @@ class AuthorDescriptionTranslation(RemoteModel):
 
     def __str__(self) -> str:
         return self.name_translation + " - (" + self.language.iso_639_code + ")"
-
-    class Meta:
-        unique_together = ["describes", "language"]
 
 class AbstractDocument(RemoteModel, AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.

@@ -5,7 +5,7 @@ import os
 import re
 import string
 import uuid
-from django import apps
+from django.apps import apps
 from django.apps import AppConfig
 from django.db import IntegrityError, models
 from django.db.models import Subquery, F
@@ -33,19 +33,18 @@ class RemoteModel(models.Model):
         abstract = True
     
     def save(self, *args, **kwargs):
-        if self.id is not None:
-            fields = self.__synchableFields()
-            fields = [x for x in fields if x != "last_updated"]
+        fields = self.__synchableFields()
+        fields = [x for x in fields if x != "last_updated"]
 
-            if self._state.adding: #new instance
-                self.last_updated = datetime.datetime.now()
-            else:
-                old = type(self).objects.get(id = self.id)
+        if self._state.adding: #new instance
+            self.last_updated = datetime.datetime.now()
+        else:
+            old = type(self).objects.get(id = self.id)
 
-                for key in fields:
-                    if getattr(old, key) != getattr(self ,key):
-                        self.last_updated = datetime.datetime.now()
-                        break
+            for key in fields:
+                if getattr(old, key) != getattr(self ,key):
+                    self.last_updated = datetime.datetime.now()
+                    break
         super(RemoteModel, self).save(*args, **kwargs)
 
     @classmethod
@@ -148,47 +147,75 @@ def _AbstractAliasThrough(aliasedClassName):
     class AbstractAliasThrough_(RemoteModel):
         origin = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_origin_end")
         target = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_target_end")
+        alias_identifier = models.UUIDField(blank=True, null=True)
 
         class Meta:
             unique_together = ["origin", "target"]
             abstract = True
 
+        
+        @classmethod
+        def __synchableFields(cls):
+            parent = super().__synchableFields()
+            return [x for x in parent if x is not "alias_identifier"]
+
+        @classmethod
+        def fixAliasIdentifiers(cls):
+            # processed = set()
+            # for i in cls.objects.all().iterator():
+            #     if i.alias_identifier in processed:
+            #         continue
+            #     newUUID= uuid.uuid4()
+            #     i.alias_identifier = newUUID
+            #     i.save()
+            #     processed.add(newUUID)
+            #     for x in i.target.allAliases():
+            #         for connection in x.alias_origin_end.all():
+            #             connection.alias_identifier = newUUID
+            #             connection.save()
+            
+            cls.objects.all().update(alias_identifier = None)
+            while(True):
+                item = cls.objects.filter(alias_identifier = None).first()
+                if item is None:
+                    return #done
+                newUUID= uuid.uuid4()
+                item.alias_identifier = newUUID
+                item.save()
+                for x in item.target.allAliases():
+                    for connection in x.alias_origin_end.all():
+                        connection.alias_identifier = newUUID
+                        connection.save()
+
         @classmethod
         def fixAllAliases(cls):
             """Operation which fixes any missing aliases. Expensive operation."""
             #Note, it is more performant to do this in a single raw query, but that will break parity with different database backends
-            ownRemote = apps.get_model(app_label="archiveBackend", model_name="Remote").objects.filter(is_this_site = True)
+            ownRemote = archiveAppConfig.get_model("RemotePeer").objects.get(is_this_site = True)
 
-            with connection.cursor() as cursor:
-                #Creating identity indirections
-                #Needs only be done once per call because the other acts do not introduce new ids
-                allValues = cls.objects.values('origin').distinct()
-                for i in allValues:
-                    try:
-                        cls.create(origin = i.origin, target = i.origin, from_remote=ownRemote)
-                    except IntegrityError:
-                        pass
+            # with connection.cursor() as cursor:
+            #Creating identity indirections
+            #Needs only be done once per call because the other acts do not introduce new ids
+            allOrigins = cls.objects.values('origin').distinct()
+            for i in allOrigins:
+                cls.objects.get_or_create(origin_id = i["origin"], target_id = i["origin"], defaults={"from_remote": ownRemote})
 
-                didChange = True
-                while didChange: #Repeat until no new entries have been created
-                    #START loop
-                    didChange = False
-                    for item in cls.objects.exclude(origin=F('target')):
-                        #Inserting reserve indirections
-                        try:
-                            cls.create(origin = item.target, target = item.origin, from_remote=ownRemote)
-                            didChange = True
-                        except IntegrityError:
-                            pass
+            didChange = True
+            while didChange: #Repeat until no new entries have been created
+                #START loop
+                didChange = False
+                for item in cls.objects.exclude(origin=F('target')):
+                    #Inserting reserve indirections
+                    _, created = cls.objects.get_or_create(origin = item.target, target = item.origin, defaults={"from_remote": ownRemote})
+                    didChange = didChange or created
 
-                        #Join indirect aliases
-                        for indirection in item.target.alias_origin_end:
-                            try:
-                                cls.create(origin = item.origin, target = indirection.target, from_remote=ownRemote)
-                                didChange = True
-                            except IntegrityError:
-                                pass
-                    #END loop
+                    #Join indirect aliases
+                    for indirection in item.target.alias_origin_end.all():
+                        _, created = cls.objects.get_or_create(origin = item.origin, target = indirection.target, defaults={"from_remote": ownRemote})
+                        didChange = didChange or created
+                #END loop
+            
+            cls.fixAliasIdentifiers()
     return AbstractAliasThrough_
 
 def AliasableModel(nameOfOwnClass: string):
@@ -206,7 +233,7 @@ def AliasableModel(nameOfOwnClass: string):
         @classmethod
         def fixAllAliases(cls):
             """Operation which fixes any missing aliases. Expensive operation."""
-            AppConfig.get_model(throughTableName).fixAllAliases()
+            archiveAppConfig.get_model(throughTableName).fixAllAliases()
 
         def __fixAlias(this):
             """Fixes alias indirection of this specific item. Use when updating aliases related to this model."""
@@ -214,15 +241,18 @@ def AliasableModel(nameOfOwnClass: string):
             this.fixAllAliases()
 
         def addAlias(this, other):
-            if (not inspect.isclass(other)):
-                raise TypeError("Value 'other' passed to addAlias must be of type " + nameOfOwnClass + " but is not a class")
-
-            if (other.__class__.__name__ is not nameOfOwnClass):
+            if not isinstance(other, this.__class__):
                 raise TypeError("Value 'other' passed to addAlias must be of type " + nameOfOwnClass + " but was " + other.__class__.__name__)
-
-            AppConfig.get_model(throughTableName).update_or_create(origin = this, target = other)
-            AppConfig.get_model(throughTableName).update_or_create(origin = other, target = this)
+            archiveAppConfig.get_model(throughTableName).objects.get_or_create(
+                    origin=this,
+                    target=other,
+                    defaults={"from_remote": archiveAppConfig.get_model("RemotePeer").objects.get(is_this_site = True)})
             this.__fixAlias()
+
+        def allAliases(self):
+            allWithThisAsOrigin = self.alias_origin_end.all().iterator()
+            for x in allWithThisAsOrigin:
+                yield x.target
 
         class Meta:
             abstract = True

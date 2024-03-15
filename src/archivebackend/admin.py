@@ -4,6 +4,7 @@ import os
 from typing import Any
 from django import forms
 from django.contrib import admin
+from django.http import HttpRequest
 from ArchiveSite.settings import BASE_DIR, EDITIONS_URL
 from archivebackend.api.uploads import uploadSeveralDocuments
 from django.utils.html import mark_safe
@@ -134,15 +135,99 @@ from archivebackend.models import *
 # admin.site.register(AbstractDocumentDescriptionTranslation, AbstractDocumentDescriptionTranslationAdmin)
 # admin.site.register(LocalEdition, LocalEditionAdmin)
 
-admin.site.register(RemotePeer)
-admin.site.register(FileFormat)
-admin.site.register(Language)
-admin.site.register(Author)
-admin.site.register(AuthorDescriptionTranslation)
-admin.site.register(AbstractDocument)
-admin.site.register(AbstractDocumentDescriptionTranslation)
-admin.site.register(Edition)
-admin.site.register(Revision)
-admin.site.register(File)
-admin.site.register(AutoGenerationConfig)
-admin.site.register(AutoGeneration)
+
+class RemoteAdminView(admin.ModelAdmin):
+    # readonly_fields = ["from_remote"]
+    def get_form(self, request, obj=None, **kwargs):
+        form = super(RemoteAdminView, self).get_form(request, obj, **kwargs)
+        form.base_fields['from_remote'].initial = RemotePeer.objects.get(is_this_site = True)
+        form.base_fields['from_remote'].disabled = True
+        return form
+    
+    def has_change_permission(self, request: HttpRequest, obj=None):
+        if obj is None:
+            return True
+        if obj.from_remote is None:
+            return True
+        return obj.from_remote.is_this_site
+        
+    def has_delete_permission(self, request: HttpRequest, obj=None):
+        return self.has_change_permission(request, obj)
+    
+    def has_add_permission(self, request: HttpRequest, obj=None):
+        return self.has_change_permission(request, obj)
+    
+def make_aliases(modeladmin, request, queryset):
+    if queryset.count == 0:
+        return
+    first = queryset[0]
+    for i in queryset:
+        first.addAlias(i)
+
+class AliasableRemoteAdminView(RemoteAdminView):
+    actions = [make_aliases]
+
+    # def get_queryset(self):
+        # return self.queryset.order_by(/*sort by alias group then by name*/)
+
+
+
+class RemotePeerView(RemoteAdminView):
+    exclude = ["is_this_site"]
+    readonly_fields = ('last_checkin',)
+    list_display = ('site_name', 'site_adress', 'mirror_files', 'peers_of_peer', 'is_this_site', 'from_remote')
+    list_filter = ('mirror_files', 'peers_of_peer', 'from_remote', 'is_this_site')
+
+admin.site.register(RemotePeer, RemotePeerView)
+
+
+class AuthorDescriptionTranslationInline(admin.TabularInline):
+    verbose_name = "Local names"
+    exclude = ('from_remote',)
+    model = AuthorDescriptionTranslation
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(from_remote = RemotePeer.objects.get(is_this_site = True))
+class AuthorDescriptionTranslationRemoteInline(admin.TabularInline):
+    verbose_name = "Names from remote"
+    readonly_fields = ['from_remote','language','name_translation','description']
+    model = AuthorDescriptionTranslation
+    def has_delete_permission(self, request, obj=None):
+        return False
+    def has_add_permission(self, request, obj=None):
+        return False
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).filter(from_remote = RemotePeer.objects.get(is_this_site = False))
+
+class AuthorAdmin(AliasableRemoteAdminView):
+    inlines = [AuthorDescriptionTranslationInline, AuthorDescriptionTranslationRemoteInline]
+
+    def save_related(self, request, form, formsets, change):
+        """
+        Override the save_related method to intercept the saving of the inline formset.
+        """
+        for formset in formsets:
+            if formset.prefix == 'descriptions':
+                for instance in formset.save(commit=False):
+                    if instance.from_remote_id is None:
+                        instance.from_remote_id = RemotePeer.objects.get(is_this_site = True).id
+        super().save_related(request, form, formsets, change)
+
+admin.site.register(FileFormat, RemoteAdminView)
+admin.site.register(Language, RemoteAdminView)
+admin.site.register(Author, AuthorAdmin)
+admin.site.register(AuthorDescriptionTranslation, RemoteAdminView)
+admin.site.register(AbstractDocument, RemoteAdminView)
+admin.site.register(AbstractDocumentDescriptionTranslation, RemoteAdminView)
+admin.site.register(Edition, RemoteAdminView)
+admin.site.register(Revision, RemoteAdminView)
+admin.site.register(File, RemoteAdminView)
+admin.site.register(AutoGenerationConfig, RemoteAdminView)
+admin.site.register(AutoGeneration, RemoteAdminView)
+
+class dummy(admin.ModelAdmin):
+    list_display = ["origin", "target", "alias_identifier"]
+
+admin.site.register(archiveAppConfig.get_model("AuthorAliasThrough"), dummy)
