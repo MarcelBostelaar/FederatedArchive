@@ -141,51 +141,15 @@ class RemoteModel(models.Model):
         for remote in Remoteclass.objects.filter(is_this_site = False):
             cls.pullFromRemote(remote)
 
-
 def _AbstractAliasThrough(aliasedClassName):
     """The model from which each through table for aliasing derives, containing all functionality."""
     class AbstractAliasThrough_(RemoteModel):
         origin = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_origin_end")
         target = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_target_end")
-        alias_identifier = models.UUIDField(blank=True, null=True)
 
         class Meta:
             unique_together = ["origin", "target"]
             abstract = True
-
-        
-        @classmethod
-        def __synchableFields(cls):
-            parent = super().__synchableFields()
-            return [x for x in parent if x is not "alias_identifier"]
-
-        @classmethod
-        def fixAliasIdentifiers(cls):
-            # processed = set()
-            # for i in cls.objects.all().iterator():
-            #     if i.alias_identifier in processed:
-            #         continue
-            #     newUUID= uuid.uuid4()
-            #     i.alias_identifier = newUUID
-            #     i.save()
-            #     processed.add(newUUID)
-            #     for x in i.target.allAliases():
-            #         for connection in x.alias_origin_end.all():
-            #             connection.alias_identifier = newUUID
-            #             connection.save()
-            
-            cls.objects.all().update(alias_identifier = None)
-            while(True):
-                item = cls.objects.filter(alias_identifier = None).first()
-                if item is None:
-                    return #done
-                newUUID= uuid.uuid4()
-                item.alias_identifier = newUUID
-                item.save()
-                for x in item.target.allAliases():
-                    for connection in x.alias_origin_end.all():
-                        connection.alias_identifier = newUUID
-                        connection.save()
 
         @classmethod
         def fixAllAliases(cls):
@@ -214,8 +178,6 @@ def _AbstractAliasThrough(aliasedClassName):
                         _, created = cls.objects.get_or_create(origin = item.origin, target = indirection.target, defaults={"from_remote": ownRemote})
                         didChange = didChange or created
                 #END loop
-            
-            cls.fixAliasIdentifiers()
     return AbstractAliasThrough_
 
 def AliasableModel(nameOfOwnClass: string):
@@ -229,11 +191,39 @@ def AliasableModel(nameOfOwnClass: string):
                      {"__module__" : __name__, "__qualname__" : throughTableName})
     globals()[generated.__name__] = generated
 
-    class AliasableModel_(models.Model):
+    class AliasableModel_(RemoteModel):
+        alias_identifier = models.UUIDField(blank=True, null=True)
+        
+        def save(self, *args, **kwargs):
+            newItem = self._state.adding
+            super(AliasableModel_, self).save(*args, **kwargs)
+            if newItem: 
+                self.addAlias(self)
+        
+        @classmethod
+        def __synchableFields(cls):
+            parent = super().__synchableFields()
+            return [x for x in parent if x != "alias_identifier"]
+        
+        @classmethod
+        def fixAliasIdentifiers(cls):
+            cls.objects.all().update(alias_identifier = None)
+            while(True):
+                item = cls.objects.filter(alias_identifier = None).first()
+                if item is None:
+                    return #done
+                newUUID= uuid.uuid4()
+                item.alias_identifier = newUUID
+                item.save()
+                for x in item.allAliases():
+                    x.alias_identifier = newUUID
+                    x.save()
+
         @classmethod
         def fixAllAliases(cls):
             """Operation which fixes any missing aliases. Expensive operation."""
             archiveAppConfig.get_model(throughTableName).fixAllAliases()
+            cls.fixAliasIdentifiers()
 
         def __fixAlias(this):
             """Fixes alias indirection of this specific item. Use when updating aliases related to this model."""
@@ -247,7 +237,6 @@ def AliasableModel(nameOfOwnClass: string):
                     origin=this,
                     target=other,
                     defaults={"from_remote": archiveAppConfig.get_model("RemotePeer").objects.get(is_this_site = True)})
-            this.__fixAlias()
 
         def allAliases(self):
             allWithThisAsOrigin = self.alias_origin_end.all().iterator()

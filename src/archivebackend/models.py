@@ -27,7 +27,7 @@ class RemotePeer(RemoteModel):
     def __str__(self) -> str:
         return self.site_name + " - " + self.site_adress
     
-class FileFormat(RemoteModel, AliasableModel("FileFormat")):
+class FileFormat(AliasableModel("FileFormat")):
     format = models.CharField(max_length=10, unique=True)
     
     def save(self, *args, **kwargs):
@@ -39,16 +39,16 @@ class FileFormat(RemoteModel, AliasableModel("FileFormat")):
     def __str__(self) -> str:
         return self.format
 
-class Language(RemoteModel, AliasableModel("Language")):
+class Language(AliasableModel("Language")):
     iso_639_code = models.CharField(max_length=10, unique=True)
     english_name = models.CharField(max_length=40)
     endonym = models.CharField(max_length=40)
     child_language_of = models.ForeignKey("Language", blank=True, null=True, on_delete=models.SET_NULL, related_name="child_languages")
 
     def __str__(self) -> str:
-        return self.iso_639_code + " - " + self.english_name
+        return self.iso_639_code + " - " + self.english_name + " - " + self.endonym
 
-class Author(RemoteModel, AliasableModel("Author")):
+class Author(AliasableModel("Author")):
     fallback_name = models.CharField(max_length=authorLength)
     birthday = models.DateField(blank=True, null=True)
 
@@ -60,13 +60,13 @@ class Author(RemoteModel, AliasableModel("Author")):
 class AuthorDescriptionTranslation(RemoteModel):
     describes = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="descriptions")
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
-    name_translation = models.CharField(max_length=authorLength)
+    translation = models.CharField(max_length=authorLength)
     description = models.CharField(max_length=descriptionLength, blank=True)
 
     def __str__(self) -> str:
-        return self.name_translation + " - (" + self.language.iso_639_code + ")"
+        return self.translation + " - (" + self.language.iso_639_code + ")"
 
-class AbstractDocument(RemoteModel, AliasableModel("AbstractDocument")):
+class AbstractDocument(AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.
     """
     original_publication_date = models.DateField(blank=True, null=True)
@@ -80,11 +80,11 @@ class AbstractDocumentDescriptionTranslation(RemoteModel):
     """Provides functionality for adding titles and descriptions of abstract documents in multiple languages"""
     describes = models.ForeignKey(AbstractDocument, on_delete=models.CASCADE, related_name="descriptions")
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
-    title_translation = models.CharField(max_length=titleLength)
+    translation = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength, blank=True)
 
     def __str__(self) -> str:
-        return self.title_translation + " - (" + self.language.iso_639_code + ")"
+        return self.translation + " - (" + self.language.iso_639_code + ")"
 
 class Edition(RemoteModel):
     """An edition is a concrete form of an abstract document. A specific printing, a specific digital edition or layout, a specific file format, with a specific language

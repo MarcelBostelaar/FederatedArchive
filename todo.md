@@ -2,7 +2,9 @@ Observations
 
 # Algemeen
 - [x] From remote niet editable maar ingevuld als this site
-- [] Verplaats alias group identifier naar items ipv links
+- [x] Verplaats alias group identifier naar items ipv links
+- [x] Auto add identity alias to all items
+- [] Vertaling inline moet ook die van aliases laten zien https://stackoverflow.com/questions/8130048/howto-add-custom-form-into-django-administrator-page-inlines
 - [] Zoekbaar maken overzicht
 - [] Many to many field moet zoekbaar zijn op tostring
 - [] Aliasable items in selecteerscherm een optie geven om groep te aliasen
@@ -21,14 +23,14 @@ Observations
 - [x] InlineModelAdmin of InlineTabular voor vertalingen
 
 # AuthorDescriptionTranslation
-- [] Niks, aliasable
+- [x] Niks, aliasable
 
 # Language
-- [] ToString ook endoniem printen
+- [x] ToString ook endoniem printen
 
 # AbstractDocument
-- [] fallbackname betere naam bedenken
-- [] Vertalingen inline maken net als author translations
+- [] ~fallbackname betere naam bedenken~
+- [x] Vertalingen inline maken net als author translations
 
 # Editions
 - [] Bestaande autheurs van origineel tonen
