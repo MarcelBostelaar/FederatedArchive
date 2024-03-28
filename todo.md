@@ -10,6 +10,7 @@ Observations
 - [] Aliasable items in selecteerscherm een optie geven om groep te aliasen
 - [] Toon lijst met aliases per item
 - [] Remote en mirrored niet editable maken
+- [] Local alias merge functionality
 
 # Remote peer
 - [x] Last checkin niet editable
