@@ -17,8 +17,8 @@ admin.site.register(AbstractDocumentDescriptionTranslation, RemoteAdminView)
 admin.site.register(Edition, EditionAdmin)
 admin.site.register(Revision, RemoteAdminView)
 admin.site.register(File, RemoteAdminView)
-admin.site.register(AutoGenerationConfig, RemoteAdminView)
-admin.site.register(AutoGeneration, RemoteAdminView)
+admin.site.register(AutoGenerationConfig)
+admin.site.register(AutoGeneration)
 
 class dummy(admin.ModelAdmin):
     readonly_fields = ('alias_identifier',)

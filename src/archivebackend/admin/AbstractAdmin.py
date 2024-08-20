@@ -1,14 +1,21 @@
+from collections.abc import Callable, Sequence
+from typing import Any
 from django.contrib import admin
-from archivebackend.models import RemotePeer
+from django.http import HttpRequest
+from archivebackend.models import RemotePeer, existanceType
 
 
 class RemoteAdminView(admin.ModelAdmin):
-    def get_form(self, request, obj=None, **kwargs):
-        form = super(RemoteAdminView, self).get_form(request, obj, **kwargs)
-        form.base_fields['from_remote'].initial = RemotePeer.objects.get(is_this_site = True)
-        form.base_fields['from_remote'].disabled = True
-        return form
-    
+    # def get_fields(self, request: HttpRequest, obj):
+    #     return (super().fields or []) + ["from_remote"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is not None:
+            if obj.from_remote != RemotePeer.objects.get(is_this_site = True): # Make all fields readonly if the edition is not local
+                return self.fields or []
+            
+        return super().get_readonly_fields(request, obj) + ("from_remote",) #from remote is always readonly
+
     def has_change_permission(self, request, obj=None):
         if obj is None:
             return True

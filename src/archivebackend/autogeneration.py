@@ -4,20 +4,14 @@ import importlib
 import os
 
 import requests
-from archivebackend.models import AutoGenerationConfig, Edition, Revision
+from result import Ok, Result
+from archivebackend.models import AutoGenerationConfig, Edition, Revision, existanceType
 
 generationFunctions = {}
 
 revisionFolderName = 'files'
 def getRevisionFolderPath(revision):
     return os.path.join(revisionFolderName, str(revision.id))
-
-def generateFiles(sourceEdition, generationConfig, targetRevision):
-    latestRevision = getLatestRevision(sourceEdition)
-    ensureFilesExistLocally(latestRevision)
-    files = latestRevision.files.all()
-    plugin = generationFunctions[generationConfig.script_name]
-    plugin.generate(files, targetRevision)
 
 def getLatestRevision(sourceEdition):
     # Retrieve the latest revision for the given sourceEdition
@@ -59,19 +53,29 @@ def downloadFile(file_url, target_path):
     else:
         print(f"Failed to download {file_url} to {target_path}")
 
-class BasePlugin:
-    def generate(self, files, targetRevision):
-        raise NotImplementedError("Subclasses must implement the generate method. They should take the files, generate new ones, and put them into the database correctly.")
+class DummyPlugin:    
+    def generate(self, originalEdition, previousEditionMaybe, configObject) -> Result[None, str]:
+        # Do work
+        # Create a new Edition, if previousEditionMaybe is None
+        # Set new edition to generated
+        # Create a new revision
+        # Put files into the new revision
+        return Ok(None)
+    
+    def readyToGenerate(self, configObject) -> bool:
+        return True
+
 
 def load_plugins(plugin_folder):
-    for config in AutoGenerationConfig.objects.all():
-        plugin_name = config.script_name
-        module_name = plugin_name.lower()
-        module_path = os.path.join(plugin_folder, module_name)
-        if os.path.exists(module_path):
-            module = importlib.import_module(module_name)
-            generationFunctions[plugin_name] = module.generate
-            if not issubclass(module.plugin, BasePlugin):
-                raise Exception("Plugin not a subclass of BasePlugin: " + module_name)
-        else:
-            raise Exception("Plugin not found: " + module_name)
+    pass
+    # for config in AutoGenerationConfig.objects.all():
+    #     plugin_name = config.script_name
+    #     module_name = plugin_name.lower()
+    #     module_path = os.path.join(plugin_folder, module_name)
+    #     if os.path.exists(module_path):
+    #         module = importlib.import_module(module_name)
+    #         generationFunctions[plugin_name] = module.generate
+    #         if not issubclass(module.plugin, BasePlugin):
+    #             raise Exception("Plugin not a subclass of BasePlugin: " + module_name)
+    #     else:
+    #         raise Exception("Plugin not found: " + module_name)

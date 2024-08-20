@@ -33,6 +33,9 @@ class RemoteModel(models.Model):
         abstract = True
     
     def save(self, *args, **kwargs):
+        if self.from_remote_id == None:
+            self.from_remote = apps.get_model(app_label="archivebackend", model_name="RemotePeer").objects.get(is_this_site = True)
+
         fields = self.__synchableFields()
         fields = [x for x in fields if x != "last_updated"]
 
