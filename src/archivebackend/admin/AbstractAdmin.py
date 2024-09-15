@@ -6,15 +6,12 @@ from archivebackend.models import RemotePeer, existanceType
 
 
 class RemoteAdminView(admin.ModelAdmin):
-    # def get_fields(self, request: HttpRequest, obj):
-    #     return (super().fields or []) + ["from_remote"]
-
     def get_readonly_fields(self, request, obj=None):
         if obj is not None:
             if obj.from_remote != RemotePeer.objects.get(is_this_site = True): # Make all fields readonly if the edition is not local
                 return self.fields or []
             
-        return super().get_readonly_fields(request, obj) + ("from_remote",) #from remote is always readonly
+        return list(super().get_readonly_fields(request, obj)) + ["from_remote"] #from remote is always readonly
 
     def has_change_permission(self, request, obj=None):
         if obj is None:

@@ -23,7 +23,11 @@ def readJsonFromUrl(url):
 
 class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
-    from_remote = models.ForeignKey("RemotePeer", blank=False, null=False, on_delete=models.CASCADE)
+    
+    def getLocalSite():
+        return apps.get_model(app_label="archivebackend", model_name="RemotePeer").objects.get(is_this_site = True)
+    
+    from_remote = models.ForeignKey("RemotePeer", blank=False, null=False, on_delete=models.CASCADE, default=getLocalSite)
     last_updated = models.DateTimeField(blank=True, auto_now_add=True)
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -33,9 +37,7 @@ class RemoteModel(models.Model):
         abstract = True
     
     def save(self, *args, **kwargs):
-        if self.from_remote_id == None:
-            self.from_remote = apps.get_model(app_label="archivebackend", model_name="RemotePeer").objects.get(is_this_site = True)
-
+        """Skips syncing the last_updated field if the item is new and sets it to the current time if it has been updated."""
         fields = self.__synchableFields()
         fields = [x for x in fields if x != "last_updated"]
 

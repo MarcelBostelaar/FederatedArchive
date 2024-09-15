@@ -1,5 +1,7 @@
 Observations
 
+# TODO move back to admin view, replace all admin views with a custom form to get around the admin view limitations
+
 # Algemeen
 - [x] From remote niet editable maar ingevuld als this site
 - [x] Verplaats alias group identifier naar items ipv links
@@ -32,6 +34,7 @@ Observations
 # AbstractDocument
 - [] ~fallbackname betere naam bedenken~
 - [x] Vertalingen inline maken net als author translations
+- [] Checken of er geen dubbel autheurs of aliases in staan
 
 # Editions
 - [x] Bestaande autheurs van origineel tonen, in overview en ook in form
