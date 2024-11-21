@@ -1,6 +1,7 @@
 
 /src/uploads/*
 *__pycache__*
-# /src/db.sqlite3
+/src/db.sqlite3
 /.vscode/*
 /src/static/*
+/src/archivebackend/migrations/*
