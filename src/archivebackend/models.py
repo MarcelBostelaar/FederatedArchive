@@ -74,7 +74,7 @@ class AbstractDocument(AliasableModel("AbstractDocument")):
     """
     original_publication_date = models.DateField(blank=True, null=True)
     authors = models.ManyToManyField(Author)
-    fallback_name = models.CharField(max_length=maxFileNameLength, unique=True)
+    fallback_name = models.CharField(max_length=maxFileNameLength)
 
     def __str__(self) -> str:
         return self.fallback_name
