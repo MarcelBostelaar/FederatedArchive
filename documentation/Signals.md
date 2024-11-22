@@ -1,4 +1,3 @@
-# Requirements
 
 ## Signals
 ### RemotePeer
