@@ -4,6 +4,9 @@ from django.core.signals import post_save, pre_save
 from archivebackend.models import Edition, Revision, existanceType
 
 def filterPreSave(hasValues={}, changeInAnyValues = []):
+    """Utility function to stop firing a signal if the model instance does not meet the criteria.
+    hasValues is a dictionary of the values that must be set in the new data content of the model.
+    changeinAnyValues is a list of values that must be changed in the new data content of the model"""
     def inner(func):
         def internal_filter(sender, modelInstance, *args, **kwargs):
             for (key, value) in hasValues:
@@ -24,6 +27,8 @@ def filterPreSave(hasValues={}, changeInAnyValues = []):
                 return #No changes in values, dont fire
         return internal_filter
     return inner
+
+
 
 
 
