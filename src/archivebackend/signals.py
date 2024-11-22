@@ -2,7 +2,6 @@ import datetime
 from django.dispatch import receiver
 from django.core.signals import post_save, pre_save
 from archivebackend.models import Edition, Revision, existanceType
-from archivebackend.modelsAbstract import RemoteModel
 
 def filterPreSave(hasValues={}, changeInAnyValues = []):
     def inner(func):

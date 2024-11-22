@@ -1,6 +1,6 @@
 from django.db import models
 from archivebackend.constants import *
-from .Edition import Edition
+from .EditionModels import Edition
 from .FileFormat import FileFormat
 
 class AutoGenerationConfig(models.Model):
@@ -10,7 +10,7 @@ class AutoGenerationConfig(models.Model):
     automatically_regenerate = models.BooleanField(default=False)
     source_file_format = models.ForeignKey(FileFormat, on_delete=models.CASCADE, related_name='can_be_consumed_by_autogen', null=True)
     target_file_format = models.ForeignKey(FileFormat, on_delete=models.CASCADE, related_name='can_be_generated_by_autogen', null=True)
-    config_json = models.TextField(default="{}")
+    config_json = models.JSONField(default="{}")
 
 # Saves all auto generated files with their configuration so they can be regenerated if needed.
 class AutoGeneration(models.Model):
