@@ -4,20 +4,16 @@
  - mirror_files on change
      - If from false to true -> launch job to start import process
      - If from true to false -> add delete option to suggestions.
- - last_checkin periodic lookup, configurable
 
 ### FileFormat
- - Aliasable
  - On change
     - Auto alias/signal possible alias when identical fileformat name (strip dots)
 
 ### Language
- - Aliasable
  - On change
     - Auto alias/signal possible alias when identical iso code
 
 ### Author
- - Aliasable
  - On change
     - Auto alias/signal possible alias when identical fallback_name, if both have birthdays, identical birthdays
 
@@ -43,7 +39,6 @@
 
 
 ### Revision
- - TODO: Add milestone revision option (prevents deletions downstream)
  - On adding: 
     - Clean non-milestone versions when a newer version is added
     - Launch autogeneration
@@ -52,7 +47,6 @@
  - On delete: clean function
 
 ### AutoGenerationConfig
- - Nothing
  - On change: Add suggestion to add job "regenerate all" (if any exist using this config)
 
 ### AutoGeneration
