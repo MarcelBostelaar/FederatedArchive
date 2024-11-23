@@ -1,1 +1,1 @@
-from .filterdefinitions import *
+from .signalDefinitions import *

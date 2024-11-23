@@ -1,30 +1,26 @@
-import datetime
-from django.dispatch import receiver
-from django.core.signals import post_save, pre_save
-from archivebackend.models import Edition, Revision, existanceType
-
-def filterPreSave(hasValues={}, changeInAnyValues = []):
+def pre_save_value_filter(newValuesMustContain={}, valuesMustHaveChanged = []):
     """Utility function to stop firing a signal if the model instance does not meet the criteria.
     hasValues is a dictionary of the values that must be set in the new data content of the model.
-    changeinAnyValues is a list of values that must be changed in the new data content of the model"""
+    changeinAnyValues is a list of values that must be changed in the new data content of the model.
+    Prevents firing of signal on object creation"""
     def inner(func):
-        def internal_filter(sender, modelInstance, *args, **kwargs):
-            for (key, value) in hasValues:
-                if not hasattr(modelInstance, key):
+        def internal_filter(sender = None, instance = None, *args, **kwargs):
+            for (key, value) in newValuesMustContain.items():
+                if not hasattr(instance, key):
                     raise Exception("Attribute " + key + " does not exist")
-                if not getattr(modelInstance, key) == value:
+                if not getattr(instance, key) == value:
                     return
-            if modelInstance.pk is None or len(changeInAnyValues) == 0:
+            if instance.pk is None or len(valuesMustHaveChanged) == 0:
                 #New instance or no changes in values need to be detected
-                return func(sender, modelInstance, *args, **kwargs)
+                return func(sender, instance, *args, **kwargs)
             else:
-                old = sender.get(pk = modelInstance.pk)
-                for key in changeInAnyValues:
-                    if not hasattr(modelInstance, key):
+                old = sender.objects.get(pk = instance.pk)
+                for key in valuesMustHaveChanged:
+                    if not hasattr(instance, key):
                         raise Exception("Attribute " + key + " does not exist")
-                    attribute = getattr(old, key) #TODO check if this is null on creation
-                    if getattr(modelInstance, key) != attribute:
-                        return func(sender, modelInstance, *args, **kwargs)
+                    attribute = getattr(old, key)
+                    if getattr(instance, key) != attribute:
+                        return func(sender, instance, *args, **kwargs)
                 return #No changes in values, dont fire
         return internal_filter
     return inner
