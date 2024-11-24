@@ -1,4 +1,5 @@
 from django.dispatch import receiver
+from archivebackend.jobs import DownloadLatestRevisionJob
 from archivebackend.models import *
 from .util import pre_save_value_filter
 from django.db.models.signals import pre_delete, pre_save, post_save
@@ -8,9 +9,13 @@ from django.db.models.signals import pre_delete, pre_save, post_save
 @receiver(pre_save, sender=RemotePeer)
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : True}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
-    print("Not implemented signal remote peer 1")
-    #TODO implement
-    pass
+    makeJobsFor = Edition.objects.filter(from_remote = instance)
+    for item in makeJobsFor:
+        jobData = DownloadLatestRevisionJob()
+        jobData.EditionVal = item
+        Job.objects.create(
+            job_name = "Start mirroring '" + item.title + "' from '" + instance.site_name + "'",
+            parameters = jobData.serialise())
 
 
 @receiver(pre_save, sender=RemotePeer)

@@ -7,4 +7,4 @@ from .AbstractDocumentModels import *
 from .EditionModels import *
 from .RevisionFileModels import *
 from .AutoGeneration import *
-from .Jobs import *
+from .Job import *
