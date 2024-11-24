@@ -1,24 +1,27 @@
+from dataclasses import fields
 from django.dispatch import receiver
 from archivebackend.jobs import DownloadLatestRevisionJob
 from archivebackend.models import *
-from .util import pre_save_value_filter
+from .util import not_new_items, pre_save_value_filter
 from django.db.models.signals import pre_delete, pre_save, post_save
 
 
 ##RemotePeer
 @receiver(pre_save, sender=RemotePeer)
+# @not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : True}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
     makeJobsFor = Edition.objects.filter(from_remote = instance)
     for item in makeJobsFor:
-        jobData = DownloadLatestRevisionJob()
-        jobData.EditionVal = item
+        jobData = DownloadLatestRevisionJob(_editionID = item.id)
         Job.objects.create(
             job_name = "Start mirroring '" + item.title + "' from '" + instance.site_name + "'",
-            parameters = jobData.serialise())
+            parameters = jobData.serialize())
+        pass
 
 
 @receiver(pre_save, sender=RemotePeer)
+@not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : False}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStopMirroring(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal remote peer 2")
@@ -36,7 +39,7 @@ def CheckForIdentificalFormat(sender = None, instance = None, *args, **kwargs):
 
 ##Language
 @receiver(pre_save, sender=Language)
-def CheckForIdentificalISOcode(_model, modelInstance, isCreated, *args, **kwargs):
+def CheckForIdenticalISOcode(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal language")
     #TODO implement
     pass
@@ -44,7 +47,7 @@ def CheckForIdentificalISOcode(_model, modelInstance, isCreated, *args, **kwargs
 
 ##Author
 @receiver(pre_save, sender=Author)
-def CheckForPossibleAuthorAliases(_model, modelInstance, isCreated, *args, **kwargs):
+def CheckForPossibleAuthorAliases(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal author")
     #TODO implement
     pass
@@ -52,7 +55,7 @@ def CheckForPossibleAuthorAliases(_model, modelInstance, isCreated, *args, **kwa
 
 ##AbstractDocument
 @receiver(pre_save, sender=AbstractDocument)
-def CheckForPossibleDocumentAliases(_model, modelInstance, isCreated, *args, **kwargs):
+def CheckForPossibleDocumentAliases(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal abstract document")
     #TODO implement
     pass
@@ -61,24 +64,27 @@ def CheckForPossibleDocumentAliases(_model, modelInstance, isCreated, *args, **k
 ##Edition
 
 @receiver(pre_save, sender=Edition)
+@not_new_items()
 @pre_save_value_filter(newValuesMustContain={"existance_type" : existanceType.LOCAL}, valuesMustHaveChanged=["existance_type"])
-def EditionToLocalTransition(_model, modelInstance, isCreated, *args, **kwargs):
+def EditionToLocalTransition(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal edition to local")
     #TODO implement
     pass
 
 #Transition is restricted to mirrored -> remote, so can only be called if previous state is remote
 @receiver(pre_save, sender=Edition)
+@not_new_items()
 @pre_save_value_filter(newValuesMustContain={"existance_type" : existanceType.REMOTE}, valuesMustHaveChanged=["existance_type"])
-def EditionToRemoteTransition(_model, modelInstance, isCreated, *args, **kwargs):
+def EditionToRemoteTransition(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal edition to remote")
     #TODO implement
     pass
 
 #Transition is restricted to remote -> mirrored, so can only be called if previous state is remote
 @receiver(pre_save, sender=Edition)
+@not_new_items()
 @pre_save_value_filter(newValuesMustContain={"existance_type" : existanceType.MIRROREDREMOTE}, valuesMustHaveChanged=["existance_type"])
-def EditionToMirroredTransition(_model, modelInstance, isCreated, *args, **kwargs):
+def EditionToMirroredTransition(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal edition to mirrored")
     #TODO implement
     pass
@@ -104,7 +110,7 @@ def OnFileDelete(_model, modelInstance, database, origin, *args, **kwargs):
 
 #AutoGenerationConfig
 @receiver(pre_save, sender=AutoGenerationConfig)
-def AutogenConfigAddRegenAllSuggestion(_model, modelInstance, isCreated, *args, **kwargs):
+def AutogenConfigAddRegenAllSuggestion(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal autogen config")
     #TODO implement
     pass

@@ -1,23 +1,29 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from archivebackend.jobs.abstractJob import AbstractJobData
 from archivebackend.models import Edition
-
-editionIDKey = "editionID"
+from archivebackend.models.Job import JobStatus
 
 @dataclass
 class DownloadLatestRevisionJob(AbstractJobData):
-    EditionVal: Edition
-    JobType = "DownloadEdition"
+    _EditionVal: Edition = field(init=False, metadata={"exclude": True})
+    _editionID: str
+    JobType: str = "DownloadLatestRevisionJob"
 
-    def __init__(self):
-        super().__init__()
+    @property
+    def EditionVal(self):
+        return self._EditionVal
 
-    def deserialise(self, valueDict, databaseJob):
-        super.deserialise(valueDict, databaseJob)
-        self.DatabaseJob = databaseJob
-        self.EditionVal = Edition.objects.get(valueDict[editionIDKey])
-        return self
+    @EditionVal.setter
+    def EditionVal(self, value):
+        self._EditionVal = value
+        self._editionID = value.id
 
-    def __childSerialise(self, obj):
-        obj[editionIDKey] = Edition.id
-        return obj
+    def __post_init__(self):
+        super().__post_init__()
+        
+        if Edition.objects.filter(id=self._editionID).count() == 1:
+            self.EditionVal = Edition.objects.filter(pk = self._editionID).first()
+            return
+        
+        self.DatabaseJob.error_message += "Can't find edition with ID " + self._editionID + ".\n"
+        self.DatabaseJob.status = JobStatus.FAILED

@@ -11,7 +11,7 @@ class RemoteAdminView(admin.ModelAdmin):
             if obj.from_remote != RemotePeer.objects.get(is_this_site = True): # Make all fields readonly if the edition is not local
                 return self.fields or []
             
-        return list(super().get_readonly_fields(request, obj)) + ["from_remote"] #from remote is always readonly
+        return list(super().get_readonly_fields(request, obj))# + ["from_remote"] #from remote is always readonly
 
     def has_change_permission(self, request, obj=None):
         if obj is None:

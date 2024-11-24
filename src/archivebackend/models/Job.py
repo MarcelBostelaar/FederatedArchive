@@ -15,6 +15,6 @@ class Job(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    error_message = models.TextField(null=True, blank=True)
+    error_message = models.TextField(blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
   

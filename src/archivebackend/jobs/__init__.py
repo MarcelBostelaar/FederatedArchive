@@ -1,5 +1,5 @@
-from archivebackend.jobs.util import tryConvertToDataclass
-from downloadEditionJob import *
+from .util import tryConvertToDataclass
+from .downloadEditionJob import *
 
 jobs = []
 

@@ -1,3 +1,13 @@
+def not_new_items():
+    """Utility function to stop firing a pre_save signal if the model instance is new"""
+    def inner(func):
+        def internal_filter(sender = None, instance = None, *args, **kwargs):
+            if sender.objects.filter(pk=instance.pk).count() == 0:
+                return
+            return func(sender, instance, *args, **kwargs)
+        return internal_filter
+    return inner
+
 def pre_save_value_filter(newValuesMustContain={}, valuesMustHaveChanged = []):
     """Utility function to stop firing a signal if the model instance does not meet the criteria.
     hasValues is a dictionary of the values that must be set in the new data content of the model.
@@ -10,7 +20,7 @@ def pre_save_value_filter(newValuesMustContain={}, valuesMustHaveChanged = []):
                     raise Exception("Attribute " + key + " does not exist")
                 if not getattr(instance, key) == value:
                     return
-            if instance.pk is None or len(valuesMustHaveChanged) == 0:
+            if sender.objects.filter(pk=instance.pk).count() == 0 or len(valuesMustHaveChanged) == 0:
                 #New instance or no changes in values need to be detected
                 return func(sender, instance, *args, **kwargs)
             else:
