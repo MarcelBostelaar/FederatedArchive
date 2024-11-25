@@ -1,4 +1,7 @@
+import datetime
 from django.db import models
+
+from archivebackend.jobs import jobConverter
 
 class JobStatus(models.IntegerChoices):
     pending = 0
@@ -15,6 +18,18 @@ class Job(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    error_message = models.TextField(blank=True, default="")
+    message_log = models.TextField(blank=True, default="")
     updated_at = models.DateTimeField(auto_now=True)
+
+    def getJob(self):
+        """Returns the job object."""
+        converted = jobConverter(self.parameters)
+        converted.DatabaseJob = self
+        return converted
+    
+    def addMessage(self, message):
+        """Adds a message to the message log."""
+        self.message_log += datetime.datetime.now().strftime("[%Y-%m-%d_%H:%M:%S]: ") + message + "\n"
+        self.save()
+    
   

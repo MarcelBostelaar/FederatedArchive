@@ -13,10 +13,11 @@ from django.db.models.signals import pre_delete, pre_save, post_save
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
     makeJobsFor = Edition.objects.filter(from_remote = instance)
     for item in makeJobsFor:
-        jobData = DownloadLatestRevisionJob(_editionID = item.id)
+        jobData = DownloadLatestRevisionJob(Edition = item)
+        x = jobData.model_dump()
         Job.objects.create(
             job_name = "Start mirroring '" + item.title + "' from '" + instance.site_name + "'",
-            parameters = jobData.serialize())
+            parameters = jobData.model_dump())
         pass
 
 
