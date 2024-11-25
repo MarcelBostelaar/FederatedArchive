@@ -6,9 +6,7 @@ import uuid
 from django.apps import apps
 from django.db import models
 from django.db.models import F
-from archivebackend import constants
 from archivebackend.constants import *
-from django.core import serializers
 from urllib.request import urlopen 
 import json 
 
@@ -52,95 +50,6 @@ class RemoteModel(models.Model):
     def __synchableFields(cls):
         return [x.name for x in cls._meta.fields if x.name not in cls.exclude_fields_from_synch]
 
-    @classmethod
-    def __writeSyncFile(cls, set, fileNameGenerator):
-        json_serializer = serializers.get_serializer("json")()
-        fieldsToSync = cls.__synchableFields()
-        classname = cls.__name__
-        file = None
-        createdFiles = []
-        fileNum = 1
-        objects_in_file_counter = 0
-        for entry in set.iterator():
-            if objects_in_file_counter == 0:
-                filename = fileNameGenerator(classname, fileNum)
-                createdFiles += [filename]
-                file = open(os.path.join(syncFileFolder, filename), "w")
-                file.write("[")
-            if objects_in_file_counter == constants.maxSyncFileItems:
-                file.write("]")
-                file.close()
-                objects_in_file_counter = 0
-                fileNum += 1
-
-            file.write(json_serializer.serialize(entry, fields=fieldsToSync))
-
-            if objects_in_file_counter < constants.maxFileNameLength:
-                file.write(",")
-            objects_in_file_counter += 1
-        
-        file = open(os.path.join(syncFileFolder, fileNameGenerator(classname, "index")), "w")
-        file.write("[" + ",".join(createdFiles) + "]")
-        file.close()
-
-    @classmethod
-    def createSyncFiles(cls):
-        classname = cls.__name__
-
-        if not os.path.exists(constants.syncFileFolder):
-            os.makedirs(constants.syncFileFolder)
-
-        matches = lambda x: re.compile(classname + r"[0-9]+\.json", re.IGNORECASE).search(x) is not None
-        for i in os.listdir(constants.syncFileFolder):
-            if matches(i):
-                os.remove(i)
-        cls.__writeSyncFile(cls.objects.all(), peersOfPeersFileBase)
-        cls.__writeSyncFile(cls.objects.filter(is_this_site = True), localFileBase)
-
-    def __overrideFromRemote(self):
-        """Indicates whether or not this item may be overridden with new data from a remote source. Overridden in child classes"""
-        return True
-
-    @staticmethod
-    def __handlePulledItem(cls, item):
-        if cls.objects.exists(id=item.id):
-            # Item with this is exists in the db
-            if not item.__overrideFromRemote():
-                #Dont override existing with new data, to prevent malicious propagation in backup versions
-                return
-            dbobj = cls.objects.get(id=item.id)
-            if dbobj.last_updated < item.last_updated:
-                # Remote has a newer version of this item
-                delattr(item, 'id')
-                for (key, value) in item:
-                    setattr(dbobj, key, value)
-                dbobj.save()
-        else:
-            # Item does not exist in this db
-            obj = object.__new__(cls)
-            for (key, value) in item:
-                setattr(dbobj, key, value)
-            obj.save()
-
-    @classmethod
-    def pullFromRemote(cls, remote):
-        ownRemote = apps.get_model(app_label="archiveBackend", model_name="Remote").objects.filter(is_this_site = True)
-        if remote.peers_of_peer:
-            indexFile = peersOfPeersFileBase(cls.__name__, "index")
-        else:
-            indexFile = localFileBase(cls.__name__, "index")
-        index_json = readJsonFromUrl(remoteFileLocationBase(remote, indexFile))
-        for file in index_json:
-            all_data = readJsonFromUrl(remoteFileLocationBase(remote, file))
-            for item in all_data:
-                if item.id != ownRemote.id:
-                    cls.__handlePulledItem(cls, item)
-
-    @classmethod
-    def pullFromAllRemotes(cls):
-        Remoteclass = apps.get_model(app_label="archiveBackend", model_name="Remote")
-        for remote in Remoteclass.objects.filter(is_this_site = False):
-            cls.pullFromRemote(remote)
 
 def _AbstractAliasThrough(aliasedClassName):
     """The model from which each through table for aliasing derives, containing all functionality."""
@@ -257,8 +166,3 @@ class RemoteBackupModel(RemoteModel):
 
     class Meta:
         abstract = True
-
-    def __overrideFromRemote(self):
-        """Indicated whether or not this instance should be overridden with data from a remote source"""
-        #If the item is marked as a backup it should never be overridden with new data from remote
-        return not self.is_backup_revision

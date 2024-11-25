@@ -34,9 +34,13 @@ def UUIDType(cls):
         "UUIDType"
     ]
 
-class AbstractJobData(BaseModel):
+class AbstractJob(BaseModel):
     DatabaseJob : Any = Field(default=None, exclude=True)
     JobType: str = Field(default=None)
+
+    def execute(self):
+        """Executes the job."""
+        raise NotImplementedError("Abstract function execute not implemented in job " + self.JobType)
 
     def save(self):
         """Saves the job to the database."""
