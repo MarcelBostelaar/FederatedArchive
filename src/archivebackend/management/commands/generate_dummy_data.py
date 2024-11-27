@@ -16,7 +16,6 @@ class Command(BaseCommand):
                 site_name=fake.company(),
                 site_adress=fake.uri(),
                 mirror_files=fake.boolean(),
-                peers_of_peer=fake.boolean(),
                 last_checkin=fake.date_time_this_year(),
                 is_this_site=False
             )

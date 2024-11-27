@@ -9,6 +9,7 @@ class DownloadLatestRevisionJob(AbstractJob):
     Attempts: int = 0
 
     def execute(self):
+        pass
         # Request latest revision from API endpoint
         # If cant connect, increase Attempts
         # If Attempts > 3, set status to failed
