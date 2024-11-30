@@ -5,6 +5,7 @@ from typing_extensions import Annotated
 from uuid import UUID
 from pydantic import AfterValidator, BaseModel, Field, PlainSerializer, ValidationError, model_validator
 
+from job_manager.jobs_registry import JobsRegistry
 from job_manager.models import Job
 
 def serializerFunc(item):
@@ -16,7 +17,7 @@ def validatorFunc(cls, x):
         try:
             x = UUID(x)
         except:
-            raise ValidationError("Invalid UUID format")
+            raise ValidationError("Invalid UUID format: " + x)
         if cls.objects.filter(pk = x).count() == 1:
             return cls.objects.filter(pk = x).first()
         return None #no such item
@@ -34,9 +35,24 @@ def UUIDType(cls):
         "UUIDType"
     ]
 
+def UUIDListType(cls):
+    return Annotated[
+        Any, 
+        PlainSerializer(lambda l: map(l, serializerFunc)), 
+        AfterValidator(lambda l: map(l, partial(validatorFunc, cls))),
+        "UUIDListType"
+    ]
+
 class AbstractJob(BaseModel):
     DatabaseJob : Any = Field(default=None, exclude=True)
     JobType: str = Field(default=None)
+    __child_jobs_to_register__ = []
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.JobType is None:
+            raise ValueError("JobType must be defined in subclass of Abstract")
+        AbstractJob.__child_jobs_to_register__.append(cls)
 
     def execute(self):
         """Executes the job."""

@@ -1,7 +1,8 @@
 from dataclasses import fields
 from django.dispatch import receiver
-from archive_backend.jobs import DownloadLatestRevisionJob
+from archive_backend.jobs.download_edition_job import DownloadLatestRevisionForEditionsJob
 from archive_backend.models import *
+from job_manager.models import Job
 from .util import not_new_items, pre_save_value_filter
 from django.db.models.signals import pre_delete, pre_save, post_save
 
@@ -11,14 +12,11 @@ from django.db.models.signals import pre_delete, pre_save, post_save
 # @not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : True}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
-    makeJobsFor = Edition.objects.filter(from_remote = instance)
-    for item in makeJobsFor:
-        jobData = DownloadLatestRevisionJob(Edition = item)
-        x = jobData.model_dump()
-        Job.objects.create(
-            job_name = "Start mirroring '" + item.title + "' from '" + instance.site_name + "'",
-            parameters = jobData.model_dump())
-        pass
+    EditionsToMirror = Edition.objects.filter(from_remote = instance)
+    Job.objects.create(
+        job_name = "Start mirroring '" + instance.site_name + "'",
+        parameters = DownloadLatestRevisionForEditionsJob(Editions = list(EditionsToMirror)).model_dump()
+        )
 
 
 @receiver(pre_save, sender=RemotePeer)

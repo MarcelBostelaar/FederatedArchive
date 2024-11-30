@@ -1,11 +1,10 @@
 from archive_backend.models import Edition
-from job_manager.abstract_job import AbstractJob, UUIDType
+from job_manager.abstract_job import AbstractJob, UUIDListType
 
 
-
-class DownloadLatestRevisionJob(AbstractJob):
-    Edition : UUIDType(Edition) # type: ignore
-    JobType: str = "DownloadLatestRevisionJob"
+class DownloadLatestRevisionForEditionsJob(AbstractJob):
+    Editions : UUIDListType(Edition) # type: ignore
+    JobType: str = "DownloadLatestRevisionForEditions"
     Attempts: int = 0
 
     def execute(self):
