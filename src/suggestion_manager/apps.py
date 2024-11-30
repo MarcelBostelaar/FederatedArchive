@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class JobManagerConfig(AppConfig):
+class SuggestionManagerConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'job_manager'
+    name = 'suggestion_manager'
