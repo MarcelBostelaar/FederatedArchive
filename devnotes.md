@@ -3,6 +3,7 @@ pydantic
 djangorestframework
 markdown
 django-filter
+faker
 (incomplete)
 
 # TODO

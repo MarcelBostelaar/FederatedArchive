@@ -38,8 +38,8 @@ def UUIDType(cls):
 def UUIDListType(cls):
     return Annotated[
         Any, 
-        PlainSerializer(lambda l: map(l, serializerFunc)), 
-        AfterValidator(lambda l: map(l, partial(validatorFunc, cls))),
+        PlainSerializer(lambda l: map(serializerFunc, l)), 
+        AfterValidator(lambda l: map(partial(validatorFunc, cls), l)),
         "UUIDListType"
     ]
 
