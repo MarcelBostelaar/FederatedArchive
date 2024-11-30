@@ -1,7 +1,7 @@
 import datetime
 from django.db import models
 from archive_backend.constants import *
-from .modelsAbstract import RemoteModel
+from .util_abstract_models import RemoteModel
 
 class RemotePeer(RemoteModel):
     site_name = models.CharField(max_length=titleLength)

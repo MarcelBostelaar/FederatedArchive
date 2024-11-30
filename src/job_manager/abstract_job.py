@@ -5,7 +5,7 @@ from typing_extensions import Annotated
 from uuid import UUID
 from pydantic import AfterValidator, BaseModel, Field, PlainSerializer, ValidationError, model_validator
 
-from archive_backend.models import Job
+from job_manager.models import Job
 
 def serializerFunc(item):
     """Converts """

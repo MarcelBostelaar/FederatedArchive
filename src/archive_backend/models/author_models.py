@@ -1,7 +1,7 @@
 from django.db import models
 from archive_backend.constants import *
-from .Language import Language
-from .modelsAbstract import AliasableModel, RemoteModel
+from .language import Language
+from .util_abstract_models import AliasableModel, RemoteModel
 
 class Author(AliasableModel("Author")):
     fallback_name = models.CharField(max_length=authorLength)

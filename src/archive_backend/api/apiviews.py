@@ -2,7 +2,6 @@ from typing import Generic
 from django.contrib.auth.models import Group, User
 from rest_framework import permissions, viewsets
 from rest_framework.generics import RetrieveAPIView
-from .modelSerializers.Revision import RemoteSerializer, RevisionSerializer
 from archive_backend.models import RemotePeer, Revision
 
 def uuidRetrieve(cls, serializer):

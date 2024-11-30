@@ -1,9 +1,9 @@
 from django import forms
 from django.db import models
 from archive_backend.constants import *
-from .Language import Language
-from .AuthorModels import Author
-from .modelsAbstract import AliasableModel, RemoteModel
+from .language import Language
+from .author_models import Author
+from .util_abstract_models import AliasableModel, RemoteModel
 
 class AbstractDocument(AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.

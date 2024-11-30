@@ -5,6 +5,9 @@ import django.db.models.deletion
 import uuid
 from django.db import migrations, models
 
+#Migrations 1-3 exists because the archive site needs a remote peer that refers to itself to create new items.
+#Since a remote peer also has an origin (another peer), and this is a foreign key, 3 steps need to be taken to
+#make a peer that has a foreign key to itself.
 
 class Migration(migrations.Migration):
 

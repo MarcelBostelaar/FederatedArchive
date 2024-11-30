@@ -1,7 +1,7 @@
 from django.db import models
 from archive_backend.constants import *
-from .EditionModels import Edition
-from .FileFormat import FileFormat
+from .edition_models import Edition
+from .file_format import FileFormat
 
 class AutoGenerationConfig(models.Model):
     name = models.CharField(max_length=100)

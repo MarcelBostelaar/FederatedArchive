@@ -2,9 +2,9 @@ import datetime
 from django import forms
 from django.db import models
 from archive_backend.constants import *
-from .FileFormat import FileFormat
-from .EditionModels import Edition
-from .modelsAbstract import RemoteBackupModel
+from .file_format import FileFormat
+from .edition_models import Edition
+from .util_abstract_models import RemoteBackupModel
 
 class RevisionStatus(models.IntegerChoices):
     ONDISK = 0

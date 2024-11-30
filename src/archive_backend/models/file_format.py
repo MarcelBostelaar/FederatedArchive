@@ -1,7 +1,7 @@
 import string
 from django.db import models
 from archive_backend.constants import *
-from .modelsAbstract import AliasableModel
+from .util_abstract_models import AliasableModel
 
 
 class FileFormat(AliasableModel("FileFormat")):

@@ -3,10 +3,10 @@ import warnings
 from django import forms
 from django.db import models
 from archive_backend.constants import *
-from .modelsAbstract import RemoteModel
-from .AuthorModels import Author
-from .AbstractDocumentModels import AbstractDocument
-from .Language import Language
+from .util_abstract_models import RemoteModel
+from .author_models import Author
+from .abstract_document_models import AbstractDocument
+from .language import Language
 from archive_backend.utils import flatten
 
 class existanceType(models.IntegerChoices):

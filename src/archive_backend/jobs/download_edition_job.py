@@ -1,5 +1,5 @@
 from archive_backend.models import Edition
-from job_manager.abstractJob import AbstractJob, UUIDType
+from job_manager.abstract_job import AbstractJob, UUIDType
 
 
 

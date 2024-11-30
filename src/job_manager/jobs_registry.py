@@ -1,11 +1,11 @@
+from __future__ import annotations
 
-
-from .abstractJob import AbstractJob
+# from .abstract_job import AbstractJob
 
 
 jobs = {}
 
-def JobsRegistry(cls: AbstractJob):
+def JobsRegistry(cls):#: AbstractJob):
     """Registers a job class for conversion from json."""
     jobname = cls.model_fields["JobType"].default
     if not isinstance(jobname, str):

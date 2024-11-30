@@ -1,5 +1,6 @@
 from django.db import migrations
 
+#See migration 1
 
 def makeNewPeer(apps, schema_editor):
     RemotePeer = apps.get_model("archive_backend", "RemotePeer")
@@ -16,7 +17,7 @@ def makeNewPeer(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("archive_backend", "0001_RemotePeerInitial"),
+        ("archive_backend", "0001_remote_peer_initial"),
     ]
 
     operations = [

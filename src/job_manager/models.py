@@ -1,7 +1,7 @@
 import datetime
 from django.db import models
 
-from job_manager.jobsRegistry import jobConverter
+from job_manager.jobs_registry import jobConverter
 
 
 class JobStatus(models.IntegerChoices):

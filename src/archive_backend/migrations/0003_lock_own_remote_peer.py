@@ -3,11 +3,12 @@
 import django.db.models.deletion
 from django.db import migrations, models
 
+#See migration 1
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('archive_backend', '0002_RemotePeerSelfCreation'),
+        ('archive_backend', '0002_remote_peer_self_creation'),
     ]
 
     operations = [

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .AbstractAdmin import RemoteAdminView
+from .abstract_admin import RemoteAdminView
 from archive_backend.models import *
 
 
@@ -31,4 +31,3 @@ for i in remotesAliasable:
 
 admin.site.register(AutoGenerationConfig)
 admin.site.register(AutoGeneration)
-admin.site.register(Job)
