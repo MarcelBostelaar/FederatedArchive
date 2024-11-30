@@ -3,4 +3,4 @@
 *__pycache__*
 /src/db.sqlite3
 /src/static/*
-/src/archivebackend/migrations/*
+/src/ArchiveBackend/migrations/*
