@@ -12,7 +12,9 @@ from django.db.models.signals import pre_delete, pre_save, post_save
 # @not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : True}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
-    EditionsToMirror = Edition.objects.filter(from_remote = instance)
+    EditionsToMirror = list(Edition.objects.filter(from_remote = instance))
+    if(len(EditionsToMirror) == 0):
+        return
     Job.objects.create(
         job_name = "Start mirroring '" + instance.site_name + "'",
         parameters = DownloadLatestRevisionForEditionsJob(Editions = list(EditionsToMirror)).model_dump()
