@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'archive_backend.apps.ArchiveBackendConfig',
-    'archive_federation_logic.apps.ArchiveFederationLogicConfig',
     'job_manager.apps.JobManagerConfig',
     'suggestion_manager.apps.SuggestionManagerConfig',
     'rest_framework',

@@ -21,7 +21,6 @@ from config import settings
 
 urlpatterns = [
     path("", include("archive_backend.urls")),
-    path("api/", include("archive_federation_logic.urls")),
     path('admin/', admin.site.urls),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
