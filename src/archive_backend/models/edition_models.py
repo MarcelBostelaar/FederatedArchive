@@ -30,10 +30,6 @@ class Edition(RemoteModel):
     description = models.CharField(max_length=descriptionLength)
     _existance_type = models.IntegerField(existanceType, default=existanceType.LOCAL, blank=True)
 
-    #precalculated to quickly serve users and reduce load in backend
-    file_url = models.CharField(max_length=maxFileNameLength, blank=True)
-    last_file_update = models.DateTimeField(blank=True, default=datetime.datetime(1970, 1, 1, 1, 00))
-
     @property
     def existance_type(self):
         return self._existance_type
