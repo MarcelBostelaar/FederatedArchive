@@ -1,13 +1,13 @@
 from django.dispatch import receiver
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
-from archive_backend.suggestions.suggestions import AliasFileFormatSuggestion
 from .util import not_new_items, pre_save_value_filter
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django_q.tasks import async_task
 
 
 
+#TODO make post save?
 ##RemotePeer
 @receiver(pre_save, sender=RemotePeer)
 # @not_new_items()
@@ -20,6 +20,7 @@ def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
                task_name=("Start mirroring from " + instance.site_name)[:100])
 
 
+#TODO make post save?
 @receiver(pre_save, sender=RemotePeer)
 @not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : False}, valuesMustHaveChanged=["mirror_files"])
@@ -40,7 +41,12 @@ def CheckForIdentificalFormat(sender = None, instance = None, created = None, *a
     aliasIdentifiers = set([x.alias_identifier for x in similarItems])
     if len(aliasIdentifiers) == 1:
         return
-    AliasFileFormatSuggestion(Unprocessed = similarItems).save()
+    i= SuggestionFieldAlias(
+        title="Merge", 
+        description="Multiple file formats with similar names have been detected. Please review the following formats: " + ", ".join([x.format for x in similarItems])
+        )
+    i.save()
+    i.unprocessed.set(similarItems)
 
 
 ##Language

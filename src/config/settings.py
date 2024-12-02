@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'archive_backend.apps.ArchiveBackendConfig',
-    'suggestion_manager.apps.SuggestionManagerConfig',
     'rest_framework',
     'django_q',
 ]
@@ -100,6 +99,11 @@ Q_CLUSTER = {
             'timeout': 3000,
             'retry': 3600,
             'max_attempts': 2,
+        },
+        "short": {
+            "timeout": 10,
+            "retry": 11,
+            "max_attempts": 1,
         }
     }
 }
