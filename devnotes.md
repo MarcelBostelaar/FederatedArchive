@@ -4,6 +4,7 @@ djangorestframework
 markdown
 django-filter
 faker
+pip install django-q2
 (incomplete)
 
 # TODO

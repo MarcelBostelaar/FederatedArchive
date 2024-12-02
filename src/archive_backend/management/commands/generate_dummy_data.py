@@ -78,9 +78,7 @@ class Command(BaseCommand):
                 language = random.choice(Language.objects.all()),
                 title = fake.word(),
                 description = fake.text(),
-                existance_type = existanceType.LOCAL,
-                file_url = fake.uri(),
-                last_file_update = fake.date_time_this_year()
+                existance_type = existanceType.LOCAL
             )
             
 

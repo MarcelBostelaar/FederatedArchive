@@ -40,9 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'archive_backend.apps.ArchiveBackendConfig',
-    'job_manager.apps.JobManagerConfig',
     'suggestion_manager.apps.SuggestionManagerConfig',
     'rest_framework',
+    'django_q',
 ]
 
 MIDDLEWARE = [
@@ -84,6 +84,16 @@ DATABASES = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
+}
+
+Q_CLUSTER = {
+    'name': 'DjangORM',
+    'workers': 4,
+    'timeout': 90,
+    'retry': 120,
+    'queue_limit': 50,
+    'bulk': 10,
+    'orm': 'default'
 }
 
 # Password validation

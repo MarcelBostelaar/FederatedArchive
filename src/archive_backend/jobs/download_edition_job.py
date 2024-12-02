@@ -1,14 +1,10 @@
+from archive_backend.jobs.util import getObjectListOnlySuccesfull
 from archive_backend.models import Edition
-from job_manager.abstract_job import AbstractJob, UUIDListType
 
 
-class DownloadLatestRevisionForEditionsJob(AbstractJob):
-    Editions : UUIDListType(Edition) # type: ignore
-    JobType: str = "DownloadLatestRevisionForEditions"
-    Attempts: int = 0
-
-    def execute(self):
-        pass
+def download_latest_revision_for_editions(editionIds):
+    editions = getObjectListOnlySuccesfull(Edition, editionIds)
+    print("!!!!!!!!!!!!!!!!!!!!!!!!Downloading latest revision for editions: ", editionIds)
         # Request latest revision from API endpoint
         # If cant connect, increase Attempts
         # If Attempts > 3, set status to failed

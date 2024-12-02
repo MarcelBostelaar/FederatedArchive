@@ -16,6 +16,18 @@
             "justMyCode": false
         },
         {
+            "name": "Run job queue",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\manage.py",
+            "args": [
+                "qcluster"
+            ],
+            "django": true,
+            "justMyCode": false,
+            "gevent": true
+        },
+        {
             "name": "Make migration",
             "type": "python",
             "request": "launch",
