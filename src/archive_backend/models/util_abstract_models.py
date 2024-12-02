@@ -3,6 +3,7 @@ import os
 import re
 import string
 import uuid
+import warnings
 from django.apps import apps
 from django.db import models
 from django.db.models import F
@@ -135,18 +136,21 @@ def AliasableModel(nameOfOwnClass: string):
             archiveAppConfig.get_model(throughTableName).fixAllAliases()
             cls.fixAliasIdentifiers()
 
-        def __fixAlias(this):
+        def __fixAlias(self):
             """Fixes alias indirection of this specific item. Use when updating aliases related to this model."""
             #TODO implement item specific alias fixing to reduce operation cost.
-            this.fixAllAliases()
+            warnings.warn("Not implemented fix alias on item, doing expensive operation on entire table instead")
+            self.fixAllAliases()
 
-        def addAlias(this, other):
-            if not isinstance(other, this.__class__):
+        def addAlias(self, other):
+            if not isinstance(other, self.__class__):
                 raise TypeError("Value 'other' passed to addAlias must be of type " + nameOfOwnClass + " but was " + other.__class__.__name__)
             archiveAppConfig.get_model(throughTableName).objects.get_or_create(
-                    origin=this,
+                    origin=self,
                     target=other,
                     defaults={"from_remote": archiveAppConfig.get_model("RemotePeer").objects.get(is_this_site = True)})
+            self.__fixAlias()
+            
 
         def allAliases(self):
             allWithThisAsOrigin = self.alias_origin_end.all().iterator()

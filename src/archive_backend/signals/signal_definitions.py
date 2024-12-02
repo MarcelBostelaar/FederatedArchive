@@ -1,6 +1,7 @@
 from django.dispatch import receiver
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
+from archive_backend.suggestions.suggestions import AliasFileFormatSuggestion
 from .util import not_new_items, pre_save_value_filter
 from django.db.models.signals import pre_delete, pre_save, post_save
 from django_q.tasks import async_task
@@ -31,11 +32,15 @@ def RemotePeerStopMirroring(sender = None, instance = None, *args, **kwargs):
 
 
 ##FileFormat
-@receiver(pre_save, sender=FileFormat)
-def CheckForIdentificalFormat(sender = None, instance = None, *args, **kwargs):
-    print("Not implemented signal file format")
-    #TODO implement
-    pass
+@receiver(post_save, sender=FileFormat)
+def CheckForIdentificalFormat(sender = None, instance = None, created = None, *args, **kwargs):
+    similarItems = list(FileFormat.objects.filter(format__icontains=instance.format))
+    if len(similarItems) <= 1:
+        return
+    aliasIdentifiers = set([x.alias_identifier for x in similarItems])
+    if len(aliasIdentifiers) == 1:
+        return
+    AliasFileFormatSuggestion(Unprocessed = similarItems).save()
 
 
 ##Language
