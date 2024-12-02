@@ -16,16 +16,18 @@ def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
     if(len(EditionsToMirror) == 0):
         return
     async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList(EditionsToMirror), 
-               task_name="Start mirroring from " + instance.site_name)
+               task_name=("Start mirroring from " + instance.site_name)[:100])
 
 
 @receiver(pre_save, sender=RemotePeer)
 @not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : False}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStopMirroring(sender = None, instance = None, *args, **kwargs):
-    print("Not implemented signal remote peer 2")
-    #TODO implement
-    pass
+    EditionsToStopMirroring = list(Edition.objects.filter(from_remote = instance))
+    if(len(EditionsToStopMirroring) == 0):
+        return
+    async_task('archive_backend.jobs.remove_local_files_for', pkStringList(EditionsToStopMirroring), 
+               task_name=("Stop mirroring from " + instance.site_name)[:100])
 
 
 ##FileFormat

@@ -89,11 +89,19 @@ DATABASES = {
 Q_CLUSTER = {
     'name': 'DjangORM',
     'workers': 4,
-    'timeout': 90,
-    'retry': 120,
+    'timeout': 59,
+    'retry': 60,
     'queue_limit': 50,
     'bulk': 10,
-    'orm': 'default'
+    'orm': 'default',
+    "max_attempts": 5,
+    'ALT_CLUSTERS': {
+        'long': {
+            'timeout': 3000,
+            'retry': 3600,
+            'max_attempts': 2,
+        }
+    }
 }
 
 # Password validation

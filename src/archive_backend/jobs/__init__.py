@@ -1,1 +1,1 @@
-from .download_edition_job import *
+from .jobs import *
