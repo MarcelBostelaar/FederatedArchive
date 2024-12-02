@@ -11,3 +11,6 @@ def getObjectOrNoneList(model, pk_list):
 def getObjectListOnlySuccesfull(model, pk_list):
     x = [getObjectOrNone(model, pk) for pk in pk_list]
     return [i for i in x if i is not None]
+
+def pkStringList(modelList):
+    return [str(x.pk) for x in modelList]

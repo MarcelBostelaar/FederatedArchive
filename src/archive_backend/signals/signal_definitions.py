@@ -1,4 +1,5 @@
 from django.dispatch import receiver
+from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
 from .util import not_new_items, pre_save_value_filter
 from django.db.models.signals import pre_delete, pre_save, post_save
@@ -14,7 +15,7 @@ def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
     EditionsToMirror = list(Edition.objects.filter(from_remote = instance))
     if(len(EditionsToMirror) == 0):
         return
-    async_task('archive_backend.jobs.download_latest_revision_for_editions', [str(x.id) for x in EditionsToMirror], 
+    async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList(EditionsToMirror), 
                task_name="Start mirroring from " + instance.site_name)
 
 
