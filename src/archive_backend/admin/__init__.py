@@ -31,4 +31,3 @@ for i in remotesAliasable:
 
 admin.site.register(AutoGenerationConfig)
 admin.site.register(AutoGeneration)
-admin.site.register(SuggestionFieldAlias)
