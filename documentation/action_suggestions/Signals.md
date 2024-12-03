@@ -10,7 +10,7 @@
 
 ## Language
  - On change
-    - Suggest  possible alias when identical iso code
+    - Suggest possible alias when identical iso code
 
 ## Author
  - On change
