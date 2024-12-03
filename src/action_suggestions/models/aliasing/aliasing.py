@@ -1,26 +1,9 @@
 from django.db import models
 from django.db.models.signals import m2m_changed
 
-from action_suggestions.signals.alias_suggestion_signal import AliasSuggestionSignal
+from action_suggestions.models.base_suggestion import SuggestedAction, SuggestionStatus
+from .validation_signal import AliasSuggestionSignal
 from archive_backend.models import AbstractDocument, Author, FileFormat, Language
-
-class SuggestionStatus(models.IntegerChoices):
-    unprocessed = 0
-    rejected = 1
-    accepted = 2
-
-class SuggestedAction(models.Model):
-    """Table containing suggested actions to approve or disapprove."""
-    title = models.CharField(max_length=255, default="No title", blank=True)
-    description = models.TextField(default="No description provided.", blank=True)
-    creation = models.DateTimeField(auto_now_add=True, blank=True)
-    status = models.IntegerField(choices=SuggestionStatus.choices, default=SuggestionStatus.unprocessed)
-
-    def execute_suggestion(self):
-        raise NotImplementedError("execute_suggestion must be implemented by subclasses.")
-
-    class Meta:
-        abstract = True
 
 def GenericAliasSuggestion(cls):
     # Generates a model superclass with the cls to operate on added.
@@ -35,11 +18,20 @@ def GenericAliasSuggestion(cls):
 
         def post_execution(self):
             if self.unprocessed.count() > 0:
-                self.__class__(unprocessed=self.unprocessed, status=SuggestionStatus.unprocessed).save()
+                new = self.__class__(status=SuggestionStatus.unprocessed)
+                new.save()
+                new.unprocessed.set(self.unprocessed.all())
+                new.save()
             if self.rejected.count() > 0:
-                self.__class__(rejected=self.rejected, status=SuggestionStatus.rejected).save()
+                new = self.__class__(status=SuggestionStatus.rejected)
+                new.save()
+                new.rejected.set(self.rejected.all())
+                new.save()
             if self.accepted.count() > 0:
-                self.__class__(accepted=self.accepted, status=SuggestionStatus.accepted).save()
+                new = self.__class__(status=SuggestionStatus.accepted)
+                new.save()
+                new.accepted.set(self.accepted.all())
+                new.save()
             self.delete()
         
         def execute_suggestion(self):
@@ -51,7 +43,9 @@ def GenericAliasSuggestion(cls):
             self.post_execution()
 
     #Register signal
-    m2m_changed.connect(AliasSuggestionSignal, sender=cls, weak=True, dispatch_uid=None)
+    m2m_changed.connect(AliasSuggestionSignal, sender=genericAliasSuggestion_.rejected.through)
+    m2m_changed.connect(AliasSuggestionSignal, sender=genericAliasSuggestion_.accepted.through)
+    m2m_changed.connect(AliasSuggestionSignal, sender=genericAliasSuggestion_.unprocessed.through)
     return genericAliasSuggestion_
 
 class AliasAbstractDocument(GenericAliasSuggestion(AbstractDocument)):

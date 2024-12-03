@@ -1,6 +1,7 @@
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 
+from action_suggestions.models import AliasFileFormat
 from archive_backend.models import *
 from archive_backend.signals.util import not_new_items, pre_save_value_filter
 
@@ -23,7 +24,7 @@ def CheckForIdentificalFormat(sender = None, instance = None, created = None, *a
     aliasIdentifiers = set([x.alias_identifier for x in similarItems])
     if len(aliasIdentifiers) == 1:
         return
-    i= AliasFileFormats(
+    i= AliasFileFormat(
         title="Merge", 
         description="Multiple file formats with similar names have been detected. Please review the following formats: " + ", ".join([x.format for x in similarItems])
         )
