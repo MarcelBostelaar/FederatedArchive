@@ -5,6 +5,15 @@ from action_suggestions.models import AliasFileFormat
 from archive_backend.models import *
 from archive_backend.signals.util import not_new_items, pre_save_value_filter
 
+#Edition
+#Transition is restricted to mirrored -> remote, so can only be called if previous state is remote
+@receiver(pre_save, sender=Edition)
+@not_new_items()
+@pre_save_value_filter(newValuesMustContain={"existance_type" : existanceType.REMOTE}, valuesMustHaveChanged=["existance_type"])
+def EditionToRemoteTransition(sender = None, instance = None, *args, **kwargs):
+    print("Not implemented signal edition to remote")
+    #TODO implement
+    pass
 
 #Remote peer
 #TODO make post save?
