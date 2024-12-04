@@ -3,6 +3,7 @@ import warnings
 from django import forms
 from django.db import models
 from archive_backend.constants import *
+from archive_backend.models.auto_generation import AutoGenerationConfig
 from .util_abstract_models import RemoteModel
 from .author_models import Author
 from .abstract_document_models import AbstractDocument
@@ -29,6 +30,9 @@ class Edition(RemoteModel):
     title = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength)
     _existance_type = models.IntegerField(existanceType, default=existanceType.LOCAL, blank=True)
+
+    auto_generation_config = models.ForeignKey(AutoGenerationConfig, on_delete=models.CASCADE, null=True, blank=True)
+    actively_generated_from = models.ForeignKey("Edition", related_name="generation_dependencies", on_delete=models.SET_NULL, null=True, blank=True)
 
     @property
     def existance_type(self):
