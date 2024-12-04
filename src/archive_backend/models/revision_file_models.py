@@ -21,3 +21,4 @@ class File(RemoteBackupModel):
     belongs_to = models.ForeignKey(Revision, null=True, on_delete=models.CASCADE, related_name="files")
     file_format = models.ForeignKey(FileFormat, on_delete=models.PROTECT)
     filename = models.CharField(max_length=maxFileNameLength)
+    file = models.FileField(upload_to='archive_files/')

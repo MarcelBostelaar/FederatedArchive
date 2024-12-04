@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'action_suggestions.apps.ActionSuggestionsConfig',
     'rest_framework',
     'django_q',
+
+    'django_cleanup.apps.CleanupConfig',#Ensure this is last, for exception handling to not mess up files
 ]
 
 MIDDLEWARE = [
