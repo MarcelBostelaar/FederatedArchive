@@ -8,7 +8,7 @@ def not_new_items():
         return internal_filter
     return inner
 
-def pre_save_value_filter(newValuesMustContain={}, valuesMustHaveChanged = []):
+def pre_save_value_filter(newValuesMustContain={}, valuesMustHaveChanged = [], oldValuesMustBe={}):
     """Utility function to stop firing a signal if the model instance does not meet the criteria.
     hasValues is a dictionary of the values that must be set in the new data content of the model.
     changeinAnyValues is a list of values that must be changed in the new data content of the model.
@@ -20,18 +20,28 @@ def pre_save_value_filter(newValuesMustContain={}, valuesMustHaveChanged = []):
                     raise Exception("Attribute " + key + " does not exist")
                 if not getattr(instance, key) == value:
                     return
-            if sender.objects.filter(pk=instance.pk).count() == 0 or len(valuesMustHaveChanged) == 0:
-                #New instance or no changes in values need to be detected
-                return func(sender, instance, *args, **kwargs)
-            else:
-                old = sender.objects.get(pk = instance.pk)
-                for key in valuesMustHaveChanged:
-                    if not hasattr(instance, key):
-                        raise Exception("Attribute " + key + " does not exist")
-                    attribute = getattr(old, key)
-                    if getattr(instance, key) != attribute:
-                        return func(sender, instance, *args, **kwargs)
-                return #No changes in values, dont fire
+                
+            if sender.objects.filter(pk=instance.pk).count() == 0:
+                if len(oldValuesMustBe.items()) > 0:
+                    return #new instance cant have old values
+                return func(sender, instance, *args, **kwargs)#new item, values have always changed, fire
+                
+            old = sender.objects.get(pk = instance.pk)
+            for key in valuesMustHaveChanged:
+                if not hasattr(instance, key):
+                    raise Exception("Attribute " + key + " does not exist")
+                oldValue = getattr(old, key)
+                if getattr(instance, key) == oldValue:
+                    return #Value did not change, so dont fire
+                
+            for key, value in oldValuesMustBe.items():
+                if not hasattr(instance, key):
+                    raise Exception("Attribute " + key + " does not exist")
+                oldValue = getattr(old, key)
+                if value != oldValue:
+                    return #Value wasnt right in the previous state, so dont fire
+                
+            return func(sender, instance, *args, **kwargs)#All checks passed, fire
         return internal_filter
     return inner
 
