@@ -1,7 +1,7 @@
 from django.dispatch import receiver
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
-from .util import not_new_items, pre_save_change_in_values, pre_save_new_values, pre_save_old_values, pre_save_value_filter
+from .util import not_new_items, pre_save_change_in_values, pre_save_new_values, pre_save_old_values
 from django.db.models.signals import post_delete, pre_save, post_save
 from django_q.tasks import async_task
 
