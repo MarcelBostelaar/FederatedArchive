@@ -31,7 +31,7 @@ class Edition(RemoteModel):
     description = models.CharField(max_length=descriptionLength)
     _existance_type = models.IntegerField(existanceType, default=existanceType.LOCAL, blank=True)
 
-    auto_generation_config = models.ForeignKey(AutoGenerationConfig, on_delete=models.CASCADE, null=True, blank=True)
+    auto_generation_config = models.ForeignKey(AutoGenerationConfig, on_delete=models.SET_NULL, null=True, blank=True)
     actively_generated_from = models.ForeignKey("Edition", related_name="generation_dependencies", on_delete=models.SET_NULL, null=True, blank=True)
 
     @property
