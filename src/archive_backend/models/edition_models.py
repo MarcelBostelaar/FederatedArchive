@@ -1,5 +1,5 @@
 import warnings
-from django.db import models
+from django.db import IntegrityError, models
 from archive_backend.constants import *
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models.generation_config import GenerationConfig
@@ -69,18 +69,3 @@ class Edition(RemoteModel):
 
     def __str__(self) -> str:
         return self.title + " - (" + self.language.iso_639_code + ")"
-
-    # def clean(self): #TODO move back to admin view, replace all admin views with a custom form to get around the admin view limitations
-    #     """Ensure no authors are duplicated in either the original authors list or the additional authors list"""
-    #     editionAuthors = list(self.edition_of.authors.all())
-    #     additionalAuthors = list(self.additional_authors.all())
-    #     originalAuthorsAliases = set(flatten([x.allAliases() for x in editionAuthors]))
-    #     additionalAuthorsAliases = flatten([x.allAliases() for x in additionalAuthors])
-    #     # If the set of aliases is the same length as the list, then there are no mutually aliased items in the list
-    #     isUnique = len(set(additionalAuthorsAliases)) == len(additionalAuthorsAliases)
-    #     InOriginal = any([extraAuthor in originalAuthorsAliases for extraAuthor in additionalAuthors])
-    #     if not isUnique:
-    #         duplicates = [author for author in additionalAuthors if additionalAuthorsAliases.count(author) > 1]
-    #         raise forms.ValidationError("Some authors are duplicated in the additional authors list: " + ", ".join([author.fallback_name for author in duplicates]))
-    #     if InOriginal:
-    #         raise forms.ValidationError("Some authors are already in the original authors list: " + ", ".join([author.fallback_name for author in additionalAuthors if author in originalAuthorsAliases]))

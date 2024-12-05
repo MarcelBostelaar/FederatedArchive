@@ -40,32 +40,33 @@ def ParentEditionChanged(sender = None, instance = None, *args, **kwargs):
 
 
 # Existance type transitions
-#AutoGeneration -> Local
+#Generated -> Local
 @receiver(pre_save, sender=Edition)
-@pre_save_new_values(existance_type = existanceType.LOCAL)
 @pre_save_old_values(existance_type = existanceType.GENERATED)
+@pre_save_new_values(existance_type = existanceType.LOCAL)
 def AutogenerationToLocalTransition(sender = None, instance = None, *args, **kwargs):
-    if instance.autogeneration is not None:
-        instance.delete()
+    instance.auto_generation_config = None
     instance.actively_generated_from = None
 
-#Local -> AutoGeneration
+#Local -> Generated
 @receiver(pre_save, sender=Edition)
-@pre_save_new_values(existance_type = existanceType.GENERATED)
 @pre_save_old_values(existance_type = existanceType.LOCAL)
+@pre_save_new_values(existance_type = existanceType.GENERATED)
 def LocalToAutogenerationTransition(sender = None, instance = None, *args, **kwargs):
-    if instance.auto_generation_config is None:
-        raise ValueError("An auto generation configuration for this item has not been set")
-    async_task('archive_backend.jobs.start_autogeneration_for', pkStringList([instance]),
-               task_name=("Autogenerating edition: " + instance.title)[:100])
+    instance._run_post_save = True
+
+@receiver(post_save, sender=Edition)
+def LocalToAutogenerationTransitionPostSave(sender = None, instance = None, created = None, *args, **kwargs):
+    if hasattr(instance, '_run_post_save') and instance._run_post_save:
+        CreateGeneratedRevision()
+        del instance._run_post_save
     
 #Remote -> MirroredRemote
 @receiver(pre_save, sender=Edition)
-@pre_save_new_values(existance_type = existanceType.MIRROREDREMOTE)
 @pre_save_old_values(existance_type = existanceType.REMOTE)
+@pre_save_new_values(existance_type = existanceType.MIRROREDREMOTE)
 def EditionToMirroredTransition(sender = None, instance = None, *args, **kwargs):
-    async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList([instance]), 
-               task_name=("Downloading local files for edition: " + instance.title)[:100])
+    pass # TODO request revision
 
 
 ##Revision
