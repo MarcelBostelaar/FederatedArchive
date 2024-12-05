@@ -29,5 +29,5 @@ for i in remotesAliasable:
     admin.site.register(archiveAppConfig.get_model(i.__name__ + "AliasThrough"), AliasAdminModel)
     
 
-admin.site.register(AutoGenerationConfig)
+admin.site.register(GenerationConfig)
 admin.site.register(AutoGeneration)

@@ -40,10 +40,10 @@
 ## Revision
  - On status change any->ondisk: TODO
     - Clean non-milestone versions when a newer version is added
-    - Launch autogeneration if specified
+    - Queue generation jobs dependents (see "edition revision generation activity diagram")
 
 ## File
  - Nothing
 
-## AutoGenerationConfig
- - Nothing
+## GenerationConfig
+ - On change: For each edition using it, CGR ![see "edition revision generation activity diagram"](./Edition%20Revision%20Generation%20activity%20diagram.drawio.png)

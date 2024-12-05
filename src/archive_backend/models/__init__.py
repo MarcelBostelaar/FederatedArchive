@@ -6,4 +6,4 @@ from .author_models import *
 from .abstract_document_models import *
 from .edition_models import *
 from .revision_file_models import *
-from .auto_generation import *
+from .generation_config import *

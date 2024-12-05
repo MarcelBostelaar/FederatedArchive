@@ -66,7 +66,7 @@ def CheckForPossibleDocumentAliases(sender = None, instance = None, *args, **kwa
 
 
 #AutoGenerationConfig
-@receiver(pre_save, sender=AutoGenerationConfig)
+@receiver(pre_save, sender=GenerationConfig)
 def AutogenConfigAddRegenAllSuggestion(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal autogen config")
     #TODO implement

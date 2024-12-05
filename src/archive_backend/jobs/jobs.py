@@ -3,7 +3,7 @@ from archive_backend.models import Edition
 from django_q.tasks import async_task
 from django_q.tasks import schedule
 
-from archive_backend.models.auto_generation import AutoGeneration
+from archive_backend.models.generation_config import AutoGeneration
 from archive_backend.models.revision_file_models import File
 
 def download_latest_revision_for_editions(editionIds):

@@ -3,7 +3,7 @@ from archive_backend.constants import *
 from .edition_models import Edition
 from .file_format import FileFormat
 
-class AutoGenerationConfig(models.Model):
+class GenerationConfig(models.Model):
     name = models.CharField(max_length=100)
     script_name = models.CharField(max_length=100)
     description = models.CharField(max_length=500, blank=True)
