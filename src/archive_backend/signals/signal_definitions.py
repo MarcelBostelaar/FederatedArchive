@@ -1,7 +1,8 @@
 from django.dispatch import receiver
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
-from .util import not_new_items, pre_save_change_in_values, pre_save_new_values, pre_save_old_values
+from archive_backend.signals.create_generated_revision import CreateGeneratedRevision, RequestRevision
+from .util import not_new_items, post_save_change_in_values, post_save_new_item, post_save_new_values, post_save_old_values, pre_save_change_in_values, pre_save_new_values, pre_save_old_values
 from django.db.models.signals import post_delete, pre_save, post_save
 from django_q.tasks import async_task
 
@@ -18,66 +19,72 @@ def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
 
 ##Edition
 
-@receiver(pre_save, sender=Edition)
-@pre_save_change_in_values("auto_generation_config")
-def AutogenConfigChanged(sender = None, instance = None, *args, **kwargs):
+#Changes in generation config or parent edition is changed
+@receiver(post_save, sender=Edition)
+@post_save_change_in_values("generation_config")
+def AutogenConfigChanged(instance = None, *args, **kwargs):
     if instance.auto_generation_config is not None:
-        async_task('archive_backend.jobs.start_autogeneration_for', pkStringList([instance]),
-               task_name=("Autogenerating edition: " + instance.title)[:100])
-
-@receiver(pre_save, sender=Edition)
-@pre_save_new_values(actively_generated_from = None)
-@pre_save_change_in_values("actively_generated_from")
-def ParentEditionNulled(sender = None, instance = None, *args, **kwargs):
-    instance.auto_generation_config = None
-
-@receiver(pre_save, sender=Edition)
-@pre_save_change_in_values("actively_generated_from")
-def ParentEditionChanged(sender = None, instance = None, *args, **kwargs):
+        CreateGeneratedRevision(instance)
+        
+@receiver(post_save, sender=Edition)
+@post_save_change_in_values("actively_generated_from")
+def AutogenConfigChanged(instance = None, *args, **kwargs):
     if instance.actively_generated_from is not None:
-        async_task('archive_backend.jobs.start_autogeneration_for', pkStringList([instance]),
-               task_name=("Autogenerating edition: " + instance.title)[:100])
+        CreateGeneratedRevision(instance)
 
+#New edition with generation config and parent edition
+
+@receiver(post_save, sender=Edition)
+@post_save_new_item()
+@post_save_new_values(existance_type = existanceType.GENERATED)
+def NewGeneratedEdition(instance = None, *args, **kwargs):
+    CreateGeneratedRevision(instance)
 
 # Existance type transitions
 #Generated -> Local
 @receiver(pre_save, sender=Edition)
 @pre_save_old_values(existance_type = existanceType.GENERATED)
 @pre_save_new_values(existance_type = existanceType.LOCAL)
-def AutogenerationToLocalTransition(sender = None, instance = None, *args, **kwargs):
+def IntegrityRemoveGenConfigs(sender = None, instance = None, *args, **kwargs):
     instance.auto_generation_config = None
     instance.actively_generated_from = None
 
 #Local -> Generated
-@receiver(pre_save, sender=Edition)
-@pre_save_old_values(existance_type = existanceType.LOCAL)
-@pre_save_new_values(existance_type = existanceType.GENERATED)
-def LocalToAutogenerationTransition(sender = None, instance = None, *args, **kwargs):
-    instance._run_post_save = True
-
 @receiver(post_save, sender=Edition)
-def LocalToAutogenerationTransitionPostSave(sender = None, instance = None, created = None, *args, **kwargs):
-    if hasattr(instance, '_run_post_save') and instance._run_post_save:
-        CreateGeneratedRevision()
-        del instance._run_post_save
+@post_save_old_values(_existance_type = existanceType.LOCAL)
+@post_save_new_values(_existance_type = existanceType.GENERATED)
+def EditionStartGenerating(sender = None, instance = None, created = None, *args, **kwargs):
+    CreateGeneratedRevision(instance)
     
 #Remote -> MirroredRemote
-@receiver(pre_save, sender=Edition)
-@pre_save_old_values(existance_type = existanceType.REMOTE)
-@pre_save_new_values(existance_type = existanceType.MIRROREDREMOTE)
+@receiver(post_save, sender=Edition)
+@post_save_old_values(_existance_type = existanceType.REMOTE)
+@post_save_new_values(_existance_type = existanceType.MIRROREDREMOTE)
 def EditionToMirroredTransition(sender = None, instance = None, *args, **kwargs):
-    pass # TODO request revision
-
+    RequestableRevision = CreateGeneratedRevision(instance)
+    RequestRevision(RequestableRevision)
 
 ##Revision
 @receiver(post_save, sender=Revision)
-def RevisionCleanAndAutogenLaunch(sender = None, instance = None, created = None, *args, **kwargs):
-    if not created:
-        #Not required for changes to the revision
-        return
-    if instance.belongs_to.generation_dependencies.count() > 0:
-        async_task('archive_backend.jobs.start_autogeneration_for', pkStringList(instance.belongs_to.generation_dependencies.all()),
-               task_name=("Autogenerating dependent editions of: " + instance.belongs_to.title)[:100])
+@post_save_new_item()
+def NewRevisionEvent(instance = None, *args, **kwargs):
+    for dependency in instance.belongs_to.generational_dependencies:
+        CreateGeneratedRevision(dependency)
 
-    async_task('archive_backend.jobs.delete_old_revisions', pkStringList([instance.belongs_to]), 
-               task_name=("Deleting old revisions of edition: " + instance.belongs_to.title)[:100])
+@receiver(post_save, sender=Revision)
+@post_save_change_in_values("status")
+@post_save_new_item(status=RevisionStatus.ONDISKPUBLISHED)
+def RevisionPublished(instance = None, *args, **kwargs):
+    for dependency in instance.belongs_to.generational_dependencies:
+        CreateGeneratedRevision(dependency) # Make a new generated revision for all dependencies
+
+    for oldRevision in instance.belongs_to.revisions.exclude(is_backup_revision = True).order_by("-date")[1:]:
+        oldRevision.delete() # Delete all non-backup revisions except the latest one
+
+##GenerationConfig
+@receiver(post_save, sender=GenerationConfig)
+@post_save_change_in_values("script_name", "automatically_regenerate", "source_file_format", "target_file_format", "config_json")
+def GenerationConfigChanged(instance = None, *args, **kwargs):
+    for edition in instance.editions:
+        CreateGeneratedRevision(edition)
+

@@ -7,7 +7,7 @@ from .util_abstract_models import RemoteModel
 from .author_models import Author
 from .abstract_document_models import AbstractDocument
 from .language import Language
-from django_q.tasks import async_task
+from model_utils import FieldTracker
 
 class existanceType(models.IntegerChoices):
     """Describes how the edition exists on this server"""
@@ -29,6 +29,7 @@ class Edition(RemoteModel):
     title = models.CharField(max_length=titleLength)
     description = models.CharField(max_length=descriptionLength)
     _existance_type = models.IntegerField(existanceType, default=existanceType.LOCAL, blank=True)
+    field_tracker = FieldTracker(fields=['_existance_type', "actively_generated_from", "generation_config"])
 
     generation_config = models.ForeignKey(GenerationConfig, on_delete=models.SET_NULL, null=True, blank=True)
     actively_generated_from = models.ForeignKey("Edition", related_name="generation_dependencies", on_delete=models.SET_NULL, null=True, blank=True)

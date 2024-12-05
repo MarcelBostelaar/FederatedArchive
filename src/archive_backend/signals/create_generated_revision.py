@@ -16,12 +16,18 @@ def CreateGeneratedRevision(self : Edition):
     
     Edition must be of type GENERATED and have a generation config."""
     validate_generation_config(self)
+    mostRecent = self.revisions.order_by('-date').first()
+    if mostRecent is not None:
+        if mostRecent.status == RevisionStatus.REQUESTABLE:
+            return mostRecent
+    #TODO if there already is a requestable revision, dont create a new one
     newRev = Revision(
         belongs_to = self, 
         status = RevisionStatus.REQUESTABLE)
     newRev.save()
     if Edition.generation_config.automatically_regenerate:
         RequestRevision(newRev)
+    return newRev
 
 def RequestRevision(self: Revision):
     """Requests a revision to be generated.
@@ -32,12 +38,12 @@ def RequestRevision(self: Revision):
     Edition it belongs to must be of type GENERATED and have a generation config."""
     validate_generation_config(self.belongs_to)
     match self.status:
-        case RevisionStatus.REQUESTABLE:
-            self.status = RevisionStatus.JOBSCHEDULED
+        case RevisionStatus.ONDISKPUBLISHED:
+            return #No need to request, it is already on disk
         case RevisionStatus.UNFINISHED:
             raise ValueError("Unfinished revision is requested. Illegal operation, can only call request to OnDisk, JobScheduled or Requestable revisions. Revision ID: " + str(Revision.pk))
-        case _:
-            return
+        case _: #Requestable or JobScheduled
+            self.status = RevisionStatus.JOBSCHEDULED
     latestParentRevision = (self.belongs_to
                             .actively_generated_from
                             .revisions.exclude(status = RevisionStatus.UNFINISHED)
