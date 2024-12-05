@@ -19,7 +19,7 @@ django-model-utils
 - [ ] Implement download jobs
 
 
-## Not MVC
+## Not MVP
 - [ ] Diff view for text files
 - [ ] Add to fileformat if its a text format
 - [ ] Job to recheck everything in db (for what exactly?)
