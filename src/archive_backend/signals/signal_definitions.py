@@ -7,15 +7,22 @@ from django.db.models.signals import post_delete, pre_save, post_save
 from django_q.tasks import async_task
 
 ##RemotePeer
-@receiver(pre_save, sender=RemotePeer)
-@pre_save_change_in_values("mirror_files")
-@pre_save_new_values(mirror_files = True)
-def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
-    EditionsToMirror = list(Edition.objects.filter(from_remote = instance))
-    if(len(EditionsToMirror) == 0):
-        return
-    async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList(EditionsToMirror), 
-               task_name=("Start mirroring from " + instance.site_name)[:100])
+
+def ScheduleDownloadAllEditionsForPeer(peer):
+    async_task('archive_backend.jobs.download_update_everything_but_revisions', pkStringList([peer]), 
+               task_name=("Downloading from peer: " + peer.name)[:100])
+
+@receiver(post_save, sender=RemotePeer)
+@post_save_change_in_values("mirror_files")
+@post_save_new_values(mirror_files = True)
+def RemotePeerStartMirroring(instance = None, *args, **kwargs):
+    ScheduleDownloadAllEditionsForPeer(instance)
+
+@receiver(post_save, sender=RemotePeer)
+@post_save_new_values(mirror_files = True)
+@post_save_new_item()
+def RemotePeerStartMirroring(instance = None, *args, **kwargs):
+    ScheduleDownloadAllEditionsForPeer(instance)
 
 ##Edition
 
@@ -32,13 +39,30 @@ def AutogenConfigChanged(instance = None, *args, **kwargs):
     if instance.actively_generated_from is not None:
         CreateGeneratedRevision(instance)
 
-#New edition with generation config and parent edition
+#New editions
 
+#Generated
 @receiver(post_save, sender=Edition)
 @post_save_new_item()
 @post_save_new_values(existance_type = existanceType.GENERATED)
 def NewGeneratedEdition(instance = None, *args, **kwargs):
     CreateGeneratedRevision(instance)
+
+#Local
+@receiver(post_save, sender=Edition)
+@post_save_new_item()
+@post_save_new_values(existance_type = existanceType.LOCAL)
+def NewLocalEdition(instance = None, *args, **kwargs):
+    #Ensure empty starting revision to prevent autogeneration errors
+    Revision.objects.create(belongs_to = instance, status = RevisionStatus.ONDISKPUBLISHED).save()
+
+#Remote and MirroredRemote
+@receiver(post_save, sender=Edition)
+@post_save_new_item()
+def NewLocalEdition(instance = None, *args, **kwargs):
+    if instance.existance_type == existanceType.REMOTE or instance.existance_type == existanceType.MIRROREDREMOTE:
+        async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList([instance.pk]), 
+                   task_name=("Download latest revision for new remote edition " + instance.name)[:100])
 
 # Existance type transitions
 #Generated -> Local

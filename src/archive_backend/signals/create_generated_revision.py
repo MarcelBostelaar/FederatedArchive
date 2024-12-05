@@ -21,7 +21,7 @@ def CreateGeneratedRevision(self : Edition):
         if mostRecent.status == RevisionStatus.REQUESTABLE:
             return mostRecent
     #TODO if there already is a requestable revision, dont create a new one
-    newRev = Revision(
+    newRev = Revision.objects.create(
         belongs_to = self, 
         status = RevisionStatus.REQUESTABLE)
     newRev.save()
