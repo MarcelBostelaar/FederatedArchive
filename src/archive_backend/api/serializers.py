@@ -46,7 +46,7 @@ classesToSerialize = [
     AbstractDocumentDescriptionTranslation,
     Edition,
     Revision,
-    File
+    ArchiveFile
 ]
 
 generatedSerializers = {cls: makeSerializer(cls) for cls in classesToSerialize}

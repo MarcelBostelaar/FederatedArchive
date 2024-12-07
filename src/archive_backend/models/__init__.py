@@ -7,4 +7,4 @@ from .abstract_document_models import *
 from .edition import *
 from .revision_file_models import *
 from .generation_config import *
-from .file import *
+from .archive_file import *

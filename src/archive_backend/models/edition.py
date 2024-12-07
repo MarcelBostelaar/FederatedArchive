@@ -46,5 +46,5 @@ def config_check(self: Edition):
         case [_, None]:
             raise IntegrityError("Edition has a generation config but no parent edition. Edition ID: " + str(self.pk))
         case _: #Both exist
-            if not self.remote_peer.is_this_site:
+            if not self.from_remote.is_this_site:
                 raise IntegrityError("Remote edition cannot have a generation configuration, as it merely mirrors." + str(self.pk))

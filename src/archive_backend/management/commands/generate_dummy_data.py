@@ -100,7 +100,7 @@ class Command(BaseCommand):
 
             
         for _ in range(4):
-            File.objects.create(
+            ArchiveFile.objects.create(
                 belongs_to=random.choice(Revision.objects.all()),
                 file_format=random.choice(FileFormat.objects.all()),
                 filename = fake.word(),

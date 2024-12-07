@@ -145,10 +145,7 @@ def AliasableModel(nameOfOwnClass: string):
             
 
         def allAliases(self):
-            """Returns an iterator of all items that are aliases of this item, including itself."""
-            allWithThisAsOrigin = self.alias_origin_end.all().iterator()
-            for x in allWithThisAsOrigin:
-                yield x.target
+            return self.__class__.objects.filter(alias_identifier = self.alias_identifier)
 
         class Meta:
             abstract = True

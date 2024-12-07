@@ -14,7 +14,7 @@ class AliasAdminModel(admin.ModelAdmin):
 remotes = [
     RemotePeer, AuthorDescriptionTranslation,
     AbstractDocumentDescriptionTranslation,
-    Edition, Revision, File 
+    Edition, Revision, ArchiveFile 
            ]
 
 remotesAliasable = [

@@ -80,11 +80,16 @@ def RevisionPublished(sender = None, instance = None, *args, **kwargs):
         oldRevision.delete() 
 
 ##GenerationConfig
-@receiver(post_save, sender=GenerationConfig)
-@post_save_change_in_values("script_name", "automatically_regenerate", 
-                            "source_file_format", "target_file_format", 
-                            "config_json")
-def GenerationConfigChanged(sender = None, instance = None, *args, **kwargs):
-    for edition in instance.editions:
+
+def GenerationChangeEvent(config):
+    for edition in config.edition_set.all():
         CreateLocalRequestableRevision(edition)
+    for i in config.previous_steps.all():
+        GenerationChangeEvent(i)
+
+@receiver(post_save, sender=GenerationConfig)
+@post_save_change_in_any("registered_name", "automatically_regenerate", 
+                            "config_json", "next_step")
+def GenerationConfigChanged(sender = None, instance = None, *args, **kwargs):
+    GenerationChangeEvent(instance)
 

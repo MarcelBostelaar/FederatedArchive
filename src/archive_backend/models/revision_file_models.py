@@ -13,7 +13,7 @@ class RevisionStatus(models.IntegerChoices):
 class Revision(RemoteBackupModel):
     belongs_to = models.ForeignKey(Edition, on_delete=models.CASCADE, related_name="revisions")
     date = models.DateTimeField(blank=True, auto_now_add=True)
-    entry_file = models.ForeignKey("File", null=True, blank=True, on_delete=models.CASCADE)
+    entry_file = models.ForeignKey("ArchiveFile", null=True, blank=True, on_delete=models.CASCADE)
     status = models.IntegerField(choices=RevisionStatus.choices, default=RevisionStatus.UNFINISHED, blank=True)
 
     field_tracker = FieldTracker(["status"])
