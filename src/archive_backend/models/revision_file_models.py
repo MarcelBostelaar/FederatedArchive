@@ -1,9 +1,6 @@
-import datetime
-from django import forms
-from django.db import models
+from django.db import IntegrityError, models
 from archive_backend.constants import *
-from .file_format import FileFormat
-from .edition_models import Edition, existanceType
+from .edition_models import Edition
 from .util_abstract_models import RemoteBackupModel
 
 class RevisionStatus(models.IntegerChoices):
@@ -18,8 +15,49 @@ class Revision(RemoteBackupModel):
     entry_file = models.ForeignKey("File", null=True, blank=True, on_delete=models.CASCADE)
     status = models.IntegerField(choices=RevisionStatus.choices, default=RevisionStatus.UNFINISHED, blank=True)
 
-class File(RemoteBackupModel):
-    belongs_to = models.ForeignKey(Revision, null=True, on_delete=models.CASCADE, related_name="files")
-    file_format = models.ForeignKey(FileFormat, on_delete=models.PROTECT)
-    filename = models.CharField(max_length=maxFileNameLength)
-    file = models.FileField(upload_to='archive_files/')
+    def save(self, *args, **kwargs):
+        #if parent is generated, edition must be local
+        is_generated = self.belongs_to.actively_generated_from is not None
+        is_local = self.from_remote.is_this_site
+
+        # Edition and revision must have the same origin. IE cannot create local revisions for a remote edition.
+        if self.from_remote != self.belongs_to.from_remote:
+            raise IntegrityError("Cannot create revisions with a different origin: ", self.from_remote, self.belongs_to.from_remote)
+
+        # For changes in existing
+        if self.pk is not None:
+            oldstatus = Revision.objects.get(pk = self.pk).status
+            newstatus = self.status
+            status_transition_check(oldstatus, newstatus)
+
+        # Check if revision status is valid at all.
+        match [is_local, is_generated, self.status]:
+            case [True, False, RevisionStatus.REQUESTABLE]:
+                raise IntegrityError("Tried to create a requestable revision for a local edition that isn't generated")
+            case [True, False, RevisionStatus.JOBSCHEDULED]:
+                raise IntegrityError("Tried to create a job scheduled revision for a local edition that isn't generated")
+            case [True, True, RevisionStatus.UNFINISHED]:
+                raise IntegrityError("Tried to create an unfinished revision for a local edition that is generated. Unfinished status is for manual revisions for manually craftee editions, not generated ones.")
+        
+        return super().save(*args, **kwargs)
+
+
+def status_transition_check(oldstatus, newstatus):
+    if oldstatus == newstatus:
+        return
+
+    match [oldstatus, newstatus]:
+        case [RevisionStatus.REQUESTABLE, RevisionStatus.UNFINISHED]:
+            raise IntegrityError("Cannot change status to UNFINISHED from REQUESTABLE")
+        case [RevisionStatus.UNFINISHED, RevisionStatus.ONDISKPUBLISHED]:
+            pass #allowed, but all others from unfinished is not allowed
+        case [RevisionStatus.UNFINISHED, _]:
+            raise IntegrityError("Cannot change revision status to anything other than ONDISKPUBLISHED from UNFINISHED")
+        case [RevisionStatus.JOBSCHEDULED, RevisionStatus.ONDISKPUBLISHED]:
+            pass #Allowed, but all others from jobscheduled is not allowed
+        case [RevisionStatus.JOBSCHEDULED, _]:
+            raise IntegrityError("Cannot change status to anything other than ONDISKPUBLISHED from JOBSCHEDULED")
+        case [RevisionStatus.ONDISKPUBLISHED, _]:
+            raise IntegrityError("Cannot unpublish a revision by changing status from ONDISKPUBLISHED to anything else")
+        case [_, RevisionStatus.REQUESTABLE]:
+            raise IntegrityError("Cannot change status to REQUESTABLE after revision creation")

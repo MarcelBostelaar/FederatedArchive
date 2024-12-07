@@ -33,9 +33,8 @@ def CreateLocalRequestableRevision(self : Edition):
         # call new revision event on it to be sure it gets back into the pipeline
         PostNewRevisionEvent(latestRevision)
         return latestRevision
-    if latestRevision.status == RevisionStatus.JOBSCHEDULED:
-        #revision is already scheduled
-        return latestRevision
+    #revision is already scheduled
+    return latestRevision
     
 
 def _requestGeneratedRevision(self: Revision):

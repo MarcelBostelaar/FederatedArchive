@@ -29,6 +29,7 @@ def RemotePeerStartMirroring(instance = None, *args, **kwargs):
 def RemotePeerStartMirroring(instance = None, *args, **kwargs):
     ScheduleDownloadAllEditionsForPeer(instance)
 
+
 ##Edition
 
 @receiver(post_save, sender=Edition)
@@ -80,7 +81,9 @@ def RevisionPublished(instance = None, *args, **kwargs):
 
 ##GenerationConfig
 @receiver(post_save, sender=GenerationConfig)
-@post_save_change_in_values("script_name", "automatically_regenerate", "source_file_format", "target_file_format", "config_json")
+@post_save_change_in_values("script_name", "automatically_regenerate", 
+                            "source_file_format", "target_file_format", 
+                            "config_json")
 def GenerationConfigChanged(instance = None, *args, **kwargs):
     for edition in instance.editions:
         CreateLocalRequestableRevision(edition)

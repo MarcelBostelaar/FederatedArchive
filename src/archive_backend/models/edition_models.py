@@ -28,3 +28,20 @@ class Edition(RemoteModel):
 
     def __str__(self) -> str:
         return self.title + " - (" + self.language.iso_639_code + ")"
+    
+    def save(self, *args, **kwargs):
+        # Check that the generation config and actively generated either both exist or both don't exist
+        config = self.generation_config
+        parent = self.actively_generated_from
+        match [config, parent]:
+            case [None, None]:
+                return
+            case [None, _]:
+                raise IntegrityError("Edition has a parent edition but no generation config. Edition ID: " + str(self.pk))
+            case [_, None]:
+                raise IntegrityError("Edition has a generation config but no parent edition. Edition ID: " + str(self.pk))
+            case _: #Both exist
+                if not self.remote_peer.is_this_site:
+                    raise IntegrityError("Remote edition cannot have a generation configuration, as it merely mirrors." + str(self.pk))
+
+        super().save(*args, **kwargs)
