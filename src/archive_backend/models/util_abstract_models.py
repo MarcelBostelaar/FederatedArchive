@@ -1,6 +1,4 @@
 import datetime
-import os
-import re
 import string
 import uuid
 import warnings
@@ -8,33 +6,29 @@ from django.apps import apps
 from django.db import models
 from django.db.models import F
 from archive_backend.constants import *
-from urllib.request import urlopen 
-import json 
-
-def readJsonFromUrl(url):
-    response = urlopen(url)
-    data_json = json.loads(response.read())
-    return data_json
 
 class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
     
     def getLocalSite():
+        """Gets the local singleton RemotePeer object. Local peer object is used for all local files."""
         return apps.get_model(app_label="archive_backend", model_name="RemotePeer").objects.get(is_this_site = True)
     
     from_remote = models.ForeignKey("RemotePeer", blank=False, null=False, on_delete=models.CASCADE, default=getLocalSite)
     last_updated = models.DateTimeField(blank=True, auto_now_add=True)
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    exclude_fields_from_synch = []
     
     class Meta:
         abstract = True
     
+    def synchableFields(self):
+        """Returns a list of fields that should be considered when syncing this model. Override this method to exclude fields from syncing."""
+        return set([x.name for x in self.__class__._meta.fields]) - set(["last_updated"])
+
     def save(self, *args, **kwargs):
         """Skips syncing the last_updated field if the item is new and sets it to the current time if it has been updated."""
-        fields = self.__synchableFields()
-        fields = [x for x in fields if x != "last_updated"]
+        fields = self.synchableFields()
 
         if self._state.adding: #new instance
             self.last_updated = datetime.datetime.now()
@@ -47,13 +41,8 @@ class RemoteModel(models.Model):
                     break
         super(RemoteModel, self).save(*args, **kwargs)
 
-    @classmethod
-    def __synchableFields(cls):
-        return [x.name for x in cls._meta.fields if x.name not in cls.exclude_fields_from_synch]
-
-
 def _AbstractAliasThrough(aliasedClassName):
-    """The model from which each through table for aliasing derives, containing all functionality."""
+    """Class generator for an alias through table for the aliasedClassName argument. Used as a parent class for all concrete through table models."""
     class AbstractAliasThrough_(RemoteModel):
         origin = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_origin_end")
         target = models.ForeignKey(aliasedClassName, on_delete=models.CASCADE, related_name = "alias_target_end")
@@ -92,15 +81,20 @@ def _AbstractAliasThrough(aliasedClassName):
     return AbstractAliasThrough_
 
 def AliasableModel(nameOfOwnClass: string):
-    """Contains functionality to allow an entry to be an alias of another entry of the same type. Magically adds extra -AliasThrough model to the base model.
-    nameOfOwnClass: The name of the concrete class which has to have aliasable functionality added to it.
+    """Class generator for a parent model and an accompanying through table that is used to keep track of aliases.
+
+      Contains all functionality to allow an entry to be an alias of another entry of the same type. 
+
+      Magically creates extra <nameModel>AliasThrough model behind the scenes.
+
+      nameOfOwnClass: The name of the concrete class which has to have aliasable functionality added to it.
     """
 
     #Create accompanying through tables for every class
     throughTableName = nameOfOwnClass + "AliasThrough"
     generated = type(throughTableName, (_AbstractAliasThrough(nameOfOwnClass), ),
                      {"__module__" : __name__, "__qualname__" : throughTableName})
-    globals()[generated.__name__] = generated
+    globals()[generated.__name__] = generated #Register the class in the global namespace
 
     class AliasableModel_(RemoteModel):
         alias_identifier = models.UUIDField(blank=True, null=True)
@@ -111,10 +105,8 @@ def AliasableModel(nameOfOwnClass: string):
             if newItem: 
                 self.addAlias(self)
         
-        @classmethod
-        def __synchableFields(cls):
-            parent = super().__synchableFields()
-            return [x for x in parent if x != "alias_identifier"]
+        def synchableFields(cls):
+            return super().synchableFields() - set(["alias_identifier"])
         
         @classmethod
         def fixAliasIdentifiers(cls):
@@ -153,6 +145,7 @@ def AliasableModel(nameOfOwnClass: string):
             
 
         def allAliases(self):
+            """Returns an iterator of all items that are aliases of this item, including itself."""
             allWithThisAsOrigin = self.alias_origin_end.all().iterator()
             for x in allWithThisAsOrigin:
                 yield x.target
@@ -163,10 +156,14 @@ def AliasableModel(nameOfOwnClass: string):
 
 class RemoteBackupModel(RemoteModel):
     """
-    Backupable Remote models may be protected from being overridden during a sync
-    to prevent propagation of malicious edits in a root archive to its backups, 
-    such as with a hostile takeover of the server."""
-    is_backup_revision = models.BooleanField(blank=True, default=False)
+    Backupable Remote models may be protected from being overridden during a sync, or being deleted when a new revision is created, by setting the is_backup flag to True.
+
+    This will prevent propagation of malicious edits in a root archive/source server to its backups/mirrors,
+    such as with a hostile takeover of the server.
+    
+    Alternatively, it may be used for more permantent versioning purposes.
+    """
+    is_backup = models.BooleanField(blank=True, default=False)
 
     class Meta:
         abstract = True

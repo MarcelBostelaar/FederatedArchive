@@ -1,6 +1,5 @@
 from django.db import models
 from archive_backend.constants import *
-from .edition_models import Edition
 from .file_format import FileFormat
 
 class GenerationConfig(models.Model):

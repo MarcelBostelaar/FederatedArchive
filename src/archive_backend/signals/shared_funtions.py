@@ -1,6 +1,6 @@
 from django.db import IntegrityError
 from archive_backend.jobs.util import pkStringList
-from archive_backend.models import Edition, existanceType, Revision
+from archive_backend.models import Edition, Revision
 from archive_backend.models.revision_file_models import RevisionStatus
 from django_q.tasks import async_task
 
@@ -10,7 +10,7 @@ def PostNewRevisionEvent(instance: Revision):
         if (instance.belongs_to.generation_config.automatically_regenerate 
             or instance.remote_peer.mirror_files):
             RequestRevision(instance)
-    for dependency in instance.belongs_to.generational_dependencies: #generational dependencies are by definition always local editions
+    for dependency in instance.belongs_to.generation_dependencies.all(): #generational dependencies are by definition always local editions
         CreateLocalRequestableRevision(dependency)
 
 def CreateLocalRequestableRevision(self : Edition):

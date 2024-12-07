@@ -1,6 +1,7 @@
 from django.db import IntegrityError, models
+from model_utils import FieldTracker
 from archive_backend.constants import *
-from .edition_models import Edition
+from .edition import Edition
 from .util_abstract_models import RemoteBackupModel
 
 class RevisionStatus(models.IntegerChoices):
@@ -15,6 +16,8 @@ class Revision(RemoteBackupModel):
     entry_file = models.ForeignKey("File", null=True, blank=True, on_delete=models.CASCADE)
     status = models.IntegerField(choices=RevisionStatus.choices, default=RevisionStatus.UNFINISHED, blank=True)
 
+    field_tracker = FieldTracker(["status"])
+
     def save(self, *args, **kwargs):
         #if parent is generated, edition must be local
         is_generated = self.belongs_to.actively_generated_from is not None
@@ -25,8 +28,9 @@ class Revision(RemoteBackupModel):
             raise IntegrityError("Cannot create revisions with a different origin: ", self.from_remote, self.belongs_to.from_remote)
 
         # For changes in existing
-        if self.pk is not None:
-            oldstatus = Revision.objects.get(pk = self.pk).status
+        if not self._state.adding:
+            oldItem = Revision.objects.filter(id = self.pk).first()
+            oldstatus = oldItem.status
             newstatus = self.status
             status_transition_check(oldstatus, newstatus)
 

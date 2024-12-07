@@ -13,7 +13,7 @@
                 "runserver"
             ],
             "django": true,
-            "justMyCode": false
+            "justMyCode": true
         },
         {
             "name": "Run job queue",
@@ -24,7 +24,7 @@
                 "qcluster"
             ],
             "django": true,
-            "justMyCode": false,
+            "justMyCode": true,
             "gevent": true
         },
         {

@@ -30,4 +30,3 @@ for i in remotesAliasable:
     
 
 admin.site.register(GenerationConfig)
-admin.site.register(AutoGeneration)

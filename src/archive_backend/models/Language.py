@@ -2,8 +2,6 @@ from django.db import models
 from archive_backend.constants import *
 from .util_abstract_models import AliasableModel
 
-
-
 class Language(AliasableModel("Language")):
     iso_639_code = models.CharField(max_length=10)
     english_name = models.CharField(max_length=40)

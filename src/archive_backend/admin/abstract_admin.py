@@ -1,8 +1,5 @@
-from collections.abc import Callable, Sequence
-from typing import Any
 from django.contrib import admin
-from django.http import HttpRequest
-from archive_backend.models import RemotePeer, existanceType
+from archive_backend.models import RemotePeer
 
 
 class RemoteAdminView(admin.ModelAdmin):

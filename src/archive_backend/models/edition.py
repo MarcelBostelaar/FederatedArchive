@@ -1,7 +1,5 @@
-import warnings
 from django.db import IntegrityError, models
 from archive_backend.constants import *
-from archive_backend.jobs.util import pkStringList
 from archive_backend.models.generation_config import GenerationConfig
 from .util_abstract_models import RemoteModel
 from .author_models import Author
@@ -26,22 +24,27 @@ class Edition(RemoteModel):
     actively_generated_from = models.ForeignKey("Edition", related_name="generation_dependencies", on_delete=models.SET_NULL, null=True, blank=True)
     field_tracker = FieldTracker(fields=["actively_generated_from", "generation_config"])
 
+    def synchableFields(self):
+        return super().synchableFields() - set(["actively_generated_from", "generation_config"])
+
     def __str__(self) -> str:
         return self.title + " - (" + self.language.iso_639_code + ")"
     
     def save(self, *args, **kwargs):
         # Check that the generation config and actively generated either both exist or both don't exist
-        config = self.generation_config
-        parent = self.actively_generated_from
-        match [config, parent]:
-            case [None, None]:
-                return
-            case [None, _]:
-                raise IntegrityError("Edition has a parent edition but no generation config. Edition ID: " + str(self.pk))
-            case [_, None]:
-                raise IntegrityError("Edition has a generation config but no parent edition. Edition ID: " + str(self.pk))
-            case _: #Both exist
-                if not self.remote_peer.is_this_site:
-                    raise IntegrityError("Remote edition cannot have a generation configuration, as it merely mirrors." + str(self.pk))
-
+        config_check(self)
         super().save(*args, **kwargs)
+
+def config_check(self: Edition):
+    config = self.generation_config
+    parent = self.actively_generated_from
+    match [config, parent]:
+        case [None, None]:
+            return
+        case [None, _]:
+            raise IntegrityError("Edition has a parent edition but no generation config. Edition ID: " + str(self.pk))
+        case [_, None]:
+            raise IntegrityError("Edition has a generation config but no parent edition. Edition ID: " + str(self.pk))
+        case _: #Both exist
+            if not self.remote_peer.is_this_site:
+                raise IntegrityError("Remote edition cannot have a generation configuration, as it merely mirrors." + str(self.pk))
