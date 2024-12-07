@@ -1,4 +1,4 @@
-def not_new_items():
+def pre_save_not_new_items():
     """Utility function to stop firing a pre_save signal if the model instance is new"""
     def inner(func):
         def internal_filter(sender = None, instance = None, *args, **kwargs):
@@ -11,7 +11,7 @@ def not_new_items():
 def pre_save_new_values(**signalkwargs):
     """Utility function to stop firing a pre_save signal if the model instance does not meet the criteria.
 
-    The values of the instance must meet the criteria in the kwargs dictionary"""
+    The new values of the instance be equal to the kwargs dictionary. (reference equality)"""
     def inner(func):
         def internal_filter(sender = None, instance = None, *args, **kwargs):
             for (key, value) in signalkwargs.items():
@@ -26,9 +26,9 @@ def pre_save_new_values(**signalkwargs):
 def pre_save_old_values(**signalkwargs):
     """Utility function to stop firing a pre_save signal if the model instance does not meet the criteria.
 
-    If the model instance is new, the signal will not fire.
+    Will not fire on new instances.
 
-    The old values of the instance must meet the criteria in the kwargs dictionary"""
+    The old values of the instance be equal to the kwargs dictionary. (reference equality)"""
     def inner(func):
         def internal_filter(sender = None, instance = None, *args, **kwargs):
             if sender.objects.filter(pk=instance.pk).count() == 0:
@@ -47,9 +47,9 @@ def pre_save_old_values(**signalkwargs):
 def pre_save_change_in_values(*valuesMustHaveChanged):
     """Utility function to stop firing a pre_save signal if the model instance does not meet the criteria.
 
-    If the model instance is new, the signal will not fire.
+    Will not fire on new instances.
 
-    The values of the instance must have changed in the new data content"""
+    The values of the instance must have changed in the new data content. (reference equality)"""
     def inner(func):
         def internal_filter(sender = None, instance = None, *args, **kwargs):
             if sender.objects.filter(pk=instance.pk).count() == 0:
@@ -71,9 +71,9 @@ def pre_save_change_in_values(*valuesMustHaveChanged):
 def post_save_old_values(**signalkwargs):
     """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
 
-    If the model instance is new, the signal will not fire. Relies on the FieldTracker utility from model_utils being called field_tracker in the model.
+    Will not fire on new instances. Relies on the FieldTracker utility from model_utils being called field_tracker in the model.
 
-    The old values of the instance must meet the criteria in the kwargs dictionary"""
+    The old values of the instance must be equal to the kwargs dictionary. (reference equality)"""
     def inner(func):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             if created:
@@ -94,7 +94,7 @@ def post_save_old_values(**signalkwargs):
 def post_save_new_values(**signalkwargs):
     """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
 
-    The new values of the instance must meet the criteria in the kwargs dictionary"""
+    The new values of the instance must be equal to the kwargs dictionary. (reference equality)"""
     def inner(func):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             for key, value in signalkwargs.items():
@@ -107,12 +107,29 @@ def post_save_new_values(**signalkwargs):
         return internal_filter
     return inner
 
+def post_save_new_values_NOTEQUALS_OR(**signalkwargs):
+    """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
+
+    None of the new values of the instance must be equal to the criteria in the kwargs dictionary, 
+    meaning that if one equality matches, the signal wont fire. (reference equality)"""
+    def inner(func):
+        def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
+            for key, value in signalkwargs.items():
+                if not hasattr(instance, key):
+                    raise Exception("Attribute " + key + " does not exist")
+                newValue = getattr(instance, key)
+                if value == newValue:
+                    return
+            return func(sender, instance, created, *args, **kwargs)
+        return internal_filter
+    return inner
+
 def post_save_change_in_values(*valuesMustHaveChanged):
     """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
 
     Will not fire signal on new items.
 
-    The values of the instance must have changed in the new data content"""
+    The values of the instance must have changed in the new data content. (reference equality)"""
     def inner(func):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             changes = instance.field_tracker.changed()
@@ -125,12 +142,28 @@ def post_save_change_in_values(*valuesMustHaveChanged):
         return internal_filter
     return inner
 
-def post_save_new_item():
+def post_save_change_in_any(*valuesMustHaveChanged):
     """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
 
     Will not fire signal on new items.
 
-    The values of the instance must have changed in the new data content"""
+    One of the given values of the instance must have changed in the new data content. (reference equality)"""
+    def inner(func):
+        def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
+            changes = instance.field_tracker.changed()
+            if len(changes) == 0:
+                return #No changes
+            for key in valuesMustHaveChanged:
+                if key in changes.keys():
+                    return func(sender, instance, created, *args, **kwargs)
+            return
+        return internal_filter
+    return inner
+
+def post_save_new_item():
+    """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
+
+    Will only fire signal on new items."""
     def inner(func):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             if created:

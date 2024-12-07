@@ -3,12 +3,12 @@ from django.dispatch import receiver
 
 from action_suggestions.models import AliasFileFormat
 from archive_backend.models import *
-from archive_backend.signals.util import not_new_items, pre_save_value_filter
+from archive_backend.signals.util import pre_save_not_new_items, pre_save_value_filter
 
 #Edition
 #Transition is restricted to mirrored -> remote, so can only be called if previous state is remote
 @receiver(pre_save, sender=Edition)
-@not_new_items()
+@pre_save_not_new_items()
 @pre_save_value_filter(newValuesMustContain={"existance_type" : existanceType.REMOTE}, valuesMustHaveChanged=["existance_type"])
 def EditionToRemoteTransition(sender = None, instance = None, *args, **kwargs):
     print("Not implemented signal edition to remote")
@@ -18,7 +18,7 @@ def EditionToRemoteTransition(sender = None, instance = None, *args, **kwargs):
 #Remote peer
 #TODO make post save?
 @receiver(pre_save, sender=RemotePeer)
-@not_new_items()
+@pre_save_not_new_items()
 @pre_save_value_filter(newValuesMustContain={"mirror_files" : False}, valuesMustHaveChanged=["mirror_files"])
 def RemotePeerStopMirroring(sender = None, instance = None, *args, **kwargs):
     print("Not implemented Remote peer stop mirroring")

@@ -7,6 +7,12 @@ from archive_backend.models.revision_file_models import Revision
 def download_latest_revision_for_editions(editionIds):
     """Downloads the latest revision (and milestones) including files for an edition from a remote"""
     editions = getObjectListOnlySuccesfull(Edition, editionIds)
+    #TODO remove old requestable revisions that are created on this site
+    #TODO implement
+
+def download_revisions(revisionIds):
+    """Downloads a revision from a remote"""
+    revisions = getObjectListOnlySuccesfull(Revision, [revisionIds])
     #TODO implement
 
 def generate_revisions(revisionIds):
