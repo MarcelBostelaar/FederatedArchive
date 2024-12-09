@@ -4,16 +4,14 @@ from django.core.files import File
 
 from archive_backend.models.file_format import FileFormat
 from .structs import ProcessingFile
-from .generator_registry import registered
+from .generation_registries import generators
 from archive_backend.models.archive_file import ArchiveFile
 from archive_backend.models.edition import Edition
 from archive_backend.models.generation_config import GenerationConfig
 from archive_backend.models.revision_file_models import Revision, RevisionStatus
 
 def generatorLoop(ProcessingFiles: List[ProcessingFile], generatorConfig: GenerationConfig, originalEdition, targetEdition):
-    generator = registered[generatorConfig.registered_name]
-    if generator == None:
-        raise ValueError("Generator not found in registry: ", generatorConfig.registered_name)
+    generator = generators.get(generatorConfig.registered_name)
     newFiles = generator(originalEdition, targetEdition, ProcessingFiles, generatorConfig.config_json)
 
     if generatorConfig.next_step == None:

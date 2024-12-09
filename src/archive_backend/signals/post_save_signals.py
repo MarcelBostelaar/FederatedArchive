@@ -4,8 +4,8 @@ from django_q.tasks import async_task
 
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
-from archive_backend.signals.shared_funtions import (
-    CreateLocalRequestableRevision, PostNewRevisionEvent)
+from archive_backend.signals.revision_events import (
+    CreateLocalRequestableRevision, DoesItemNeedNewRevision, PostNewRevisionEvent)
 
 from .util import (post_save_change_in_any, post_save_change_in_values,
                    post_save_new_item, post_save_new_values,
@@ -73,7 +73,8 @@ def NewRevisionEvent(sender = None, instance = None, *args, **kwargs):
 def RevisionPublished(sender = None, instance = None, *args, **kwargs):
     # Make a new generated revision for all dependencies
     for dependency in instance.belongs_to.generation_dependencies.all():
-        CreateLocalRequestableRevision(dependency) 
+        if DoesItemNeedNewRevision(instance, dependency):
+            CreateLocalRequestableRevision(dependency) 
 
     # Delete all non-backup revisions except the latest one
     for oldRevision in instance.belongs_to.revisions.exclude(is_backup = True).order_by("-date")[1:]:

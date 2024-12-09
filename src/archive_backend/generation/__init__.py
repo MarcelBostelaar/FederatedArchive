@@ -1,3 +1,3 @@
-from .generator_registry import register_generator, registered
+from .generation_registries import generators, make_new_generated_revision_filters
 from .generation_handler import startGeneration
 from .structs import ProcessingFile

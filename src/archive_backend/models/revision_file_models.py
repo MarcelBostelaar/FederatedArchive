@@ -47,8 +47,12 @@ def status_transition_check(oldstatus, newstatus):
         return
 
     match [oldstatus, newstatus]:
-        case [RevisionStatus.REMOTEREQUESTABLE, RevisionStatus.REQUESTABLE]:
+        case [RevisionStatus.REMOTEREQUESTABLE, RevisionStatus.REMOTEJOBSCHEDULED]:
             pass
+        case [RevisionStatus.REMOTEJOBSCHEDULED, RevisionStatus.JOBSCHEDULED]:
+            pass
+        case [RevisionStatus.REMOTEREQUESTABLE, RevisionStatus.REQUESTABLE]:
+            pass #transition allowed if remote revision has become fully available
         case [RevisionStatus.REQUESTABLE, RevisionStatus.JOBSCHEDULED]:
             pass
         case [RevisionStatus.JOBSCHEDULED, RevisionStatus.ONDISKPUBLISHED]:
@@ -61,6 +65,8 @@ def status_transition_check(oldstatus, newstatus):
 def validate_revision_state(status, is_local, is_generated):
     match [status, is_local, is_generated]:
         case [RevisionStatus.REMOTEREQUESTABLE, False, False]:
+            pass
+        case [RevisionStatus.REMOTEJOBSCHEDULED, False, False]:
             pass
         case [RevisionStatus.REQUESTABLE, True, True]:
             pass #Local generated

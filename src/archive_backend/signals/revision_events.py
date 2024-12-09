@@ -1,7 +1,7 @@
 from django.db import IntegrityError
 from archive_backend.jobs.util import pkStringList
-from archive_backend.models import Edition, Revision
-from archive_backend.models.revision_file_models import RevisionStatus
+from archive_backend.models import Edition, Revision, RevisionStatus
+from archive_backend.generation import make_new_generated_revision_filters
 from django_q.tasks import async_task
 
 def PostNewRevisionEvent(instance: Revision):
@@ -12,6 +12,11 @@ def PostNewRevisionEvent(instance: Revision):
             RequestRevision(instance)
     for dependency in instance.belongs_to.generation_dependencies.all(): #generational dependencies are by definition always local editions
         CreateLocalRequestableRevision(dependency)
+
+def DoesItemNeedNewRevision(sender: Revision, edition_to_generate: Edition):
+    return (make_new_generated_revision_filters
+            .get(edition_to_generate.generation_config.make_new_generated_revision_filter)
+            (edition_to_generate, sender, edition_to_generate.generation_config))
 
 def CreateLocalRequestableRevision(self : Edition):
     """Creates a new local requestable revision for an edition, if needed. Used to symbolize revisions that can be generated."""
@@ -38,30 +43,6 @@ def CreateLocalRequestableRevision(self : Edition):
     #revision is already scheduled
     return latestRevision
     
-def _canBeRequestedAutomatically(self: Revision):
-    """Checks if a revision can be requested non-manually."""
-    if self.status == RevisionStatus.ONDISKPUBLISHED:
-        return True
-    if self.status == RevisionStatus.JOBSCHEDULED:
-        return True
-    if self.status == RevisionStatus.UNFINISHED:
-        return False
-    if self.status == RevisionStatus.REMOTEJOBSCHEDULED:
-        return True
-    if self.status == RevisionStatus.REMOTEREQUESTABLE:
-        return False
-    if self.status == RevisionStatus.REQUESTABLE:
-        if self.from_remote.is_this_site:
-            #its generated
-            parent_revision = self.belongs_to.revisions.order_by('-date').exclude(status=RevisionStatus.UNFINISHED).first()
-            if parent_revision is None:
-                raise IntegrityError("Parent edition has no revisions, should not be possible, even remote editions should have an empty requestable revision for generation purposes. Edition ID: " + str(self.belongs_to.pk))
-            return _canBeRequestedAutomatically(parent_revision) #Check if the chain of requestable items is valid
-        else:
-            return True
-    raise Exception("Unknown revision status: " + str(self.status))
-
-
 def _requestGeneratedRevision(self: Revision):
     """Requests a revision to be generated.
     
@@ -99,17 +80,14 @@ def _downloadRemoteRevision(self: Revision):
     async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList([self.belongs_to]),
                task_name=("Downloading latest revision for edition: " + self.belongs_to.title)[:100])
     
-def _requestRemoteJob(self: Revision):
+def _requestRemoteRequestable(self: Revision):
     """Requests a remote job."""
     if self.status != RevisionStatus.REMOTEJOBSCHEDULED:
         raise IntegrityError("Revision is not in a state to be queued for remote request. Revision ID: " + str(self.pk))
     async_task('archive_backend.jobs.request_remote_requestable', str(self.pk),
                task_name=("Requesting remote requestable for edition: " + self.belongs_to.title)[:100])
 
-def RequestRevision(self: Revision, manual_request = False):
-    if not manual_request:
-        if not _canBeRequestedAutomatically(self):
-            return #it cannot be requested automatically
+def RequestRevision(self: Revision):
     match self.status:
         case RevisionStatus.ONDISKPUBLISHED:
             return #No need to request, it is already on disk
@@ -127,13 +105,12 @@ def RequestRevision(self: Revision, manual_request = False):
                 _downloadRemoteRevision(self) #Download the revision
 
         case RevisionStatus.REMOTEREQUESTABLE:
-            if manual_request:
-                self.status = RevisionStatus.REMOTEJOBSCHEDULED
-                self.save()
-                _requestRemoteJob(self)
+            self.status = RevisionStatus.REMOTEJOBSCHEDULED
+            self.save()
+            _requestRemoteRequestable(self)
 
         case RevisionStatus.REMOTEJOBSCHEDULED:
-            _requestRemoteJob(self)
+            _requestRemoteRequestable(self)
 
 
 
