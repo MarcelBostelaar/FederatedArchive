@@ -12,6 +12,8 @@ from archive_backend.models.revision_file_models import Revision, RevisionStatus
 
 def generatorLoop(ProcessingFiles: List[ProcessingFile], generatorConfig: GenerationConfig, originalEdition, targetEdition):
     generator = registered[generatorConfig.registered_name]
+    if generator == None:
+        raise ValueError("Generator not found in registry: ", generatorConfig.registered_name)
     newFiles = generator(originalEdition, targetEdition, ProcessingFiles, generatorConfig.config_json)
 
     if generatorConfig.next_step == None:
@@ -37,7 +39,7 @@ def startGeneration(targetRevision: Revision):
     startFiles = []
 
     for originalfile in most_recent_parent_revision.files.all():
-        newProcessingFile = ProcessingFile(originalfile.file.name.split("/")[-1].split(".")[0], originalfile.file_format.format)
+        newProcessingFile = ProcessingFile(originalfile.file_name, originalfile.file_format.format)
         with originalfile.file.open('rb') as src, newProcessingFile.getWriteStream() as dst:
             shutil.copyfileobj(src, dst)
         startFiles.append(newProcessingFile)
@@ -52,13 +54,17 @@ def startGeneration(targetRevision: Revision):
         with processedFile.getReadStream() as input:
             format = (FileFormat.objects.filter(format = processedFile.format).first()
             .allAliases().order_by('-from_remote__is_this_site').first())
+
+            if format == None:
+                raise ValueError("No matching file format found in database: ", processedFile.format)
+
             newFile = File(input)
+
             archiveFile = ArchiveFile.objects.create(
                 belongs_to = targetRevision,
                 file_format = format
             )
-            archiveFile.file.save(processedFile.name + "." + format.format, newFile)
-            archiveFile.save()
+            archiveFile.saveFile(newFile).save()
 
     targetRevision.status = RevisionStatus.ONDISKPUBLISHED
     targetRevision.date = target_edition.date.now()

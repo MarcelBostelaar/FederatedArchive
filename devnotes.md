@@ -4,7 +4,7 @@ djangorestframework
 markdown
 django-filter
 faker
-pip install django-q2
+django-q2
 django-cleanup
 django-model-utils
 (incomplete)
@@ -12,9 +12,14 @@ django-model-utils
 # TODO
 - [x] rework edition revision and autogen signals (documentation as well) based on the activity diagrams
 - [x] Map out signals for when items get created
+- [x] Move example plugin to its own app
+- [x] Add original filename back to archive file item
+- [x] Fix file format logic in generator runner
+- [ ] Add status remoterequestable
+- [ ] Add authentication hook for autogeneration that allows checks
 - [ ] Test all signals
-- [ ] revise generation config somehow, since it now only does one file format to the next
-- [ ] Implement 1 dummy generation functionality
+- [x] revise generation config somehow, since it now only does one file format to the next
+- [x] Implement 1 dummy generation functionality
 - [ ] Implement api
 - [ ] Implement download jobs
 

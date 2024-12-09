@@ -15,7 +15,7 @@ def fileProcessor(file : ProcessingFile):
     return finalFile
 
 def text_all_caps(origin_edition: Edition, target_edition: Edition, files: List[ProcessingFile],  config: dict) -> List[ProcessingFile]:
-    """A dummy generator, takes a txt file and outputs new txt files in all caps"""
+    """An example generator, takes a .txt file and outputs a new .txt files in all capital letters"""
     outputFiles = []
     for inputfile in files:
         if inputfile.format == "txt":

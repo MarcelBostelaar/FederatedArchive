@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'archive_backend.apps.ArchiveBackendConfig',
     # 'action_suggestions.apps.ActionSuggestionsConfig',
+    'example_generator_plugin.apps.ExampleGeneratorPluginConfig',
     'rest_framework',
     'django_q',
 
