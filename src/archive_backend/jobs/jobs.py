@@ -4,7 +4,7 @@ from archive_backend.models import Edition
 from django_q.tasks import async_task
 
 from archive_backend.models.remote_peer import RemotePeer
-from archive_backend.models.revision_file_models import Revision
+from archive_backend.models.revision_file_models import Revision, RevisionStatus
 
 def download_latest_revision_for_editions(editionIds):
     """Downloads the latest revision (and milestones) including files for an edition from a remote"""
@@ -36,3 +36,20 @@ def download_update_everything_but_revisions(peerIds):
     #dont forget all the through tables
     #update/set whether or not to mirror files. Signals will handle the rest
     #TODO implement
+
+def is_remote_revision_downloadable(revisionId):
+    raise NotImplementedError("Not implemented yet")
+
+
+
+def request_remote_requestable(revisionId):
+    """Requests a remote revision"""
+    revision = getObjectOrNone(Revision, revisionId)
+    if revision is None:
+        raise "Could not find revision with id " + str(revisionId)
+    if is_remote_revision_downloadable(revision):
+        revision.status = RevisionStatus.JOBSCHEDULED
+        revision.save()
+        download_revisions([revisionId])
+    #TODO implement sending request
+    

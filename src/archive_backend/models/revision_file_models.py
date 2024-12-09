@@ -9,6 +9,8 @@ class RevisionStatus(models.IntegerChoices):
     REQUESTABLE = 1
     JOBSCHEDULED = 2
     UNFINISHED = 3
+    REMOTEREQUESTABLE = 4
+    REMOTEJOBSCHEDULED = 5
 
 class Revision(RemoteBackupModel):
     belongs_to = models.ForeignKey(Edition, on_delete=models.CASCADE, related_name="revisions")
@@ -34,15 +36,9 @@ class Revision(RemoteBackupModel):
             newstatus = self.status
             status_transition_check(oldstatus, newstatus)
 
-        # Check if revision status is valid at all.
-        match [is_local, is_generated, self.status]:
-            case [True, False, RevisionStatus.REQUESTABLE]:
-                raise IntegrityError("Tried to create a requestable revision for a local edition that isn't generated")
-            case [True, False, RevisionStatus.JOBSCHEDULED]:
-                raise IntegrityError("Tried to create a job scheduled revision for a local edition that isn't generated")
-            case [True, True, RevisionStatus.UNFINISHED]:
-                raise IntegrityError("Tried to create an unfinished revision for a local edition that is generated. Unfinished status is for manual revisions for manually craftee editions, not generated ones.")
-        
+        # Check if the revision status is valid
+        validate_revision_state(self.status, is_local, is_generated)
+
         return super().save(*args, **kwargs)
 
 
@@ -51,17 +47,31 @@ def status_transition_check(oldstatus, newstatus):
         return
 
     match [oldstatus, newstatus]:
-        case [RevisionStatus.REQUESTABLE, RevisionStatus.UNFINISHED]:
-            raise IntegrityError("Cannot change status to UNFINISHED from REQUESTABLE")
-        case [RevisionStatus.UNFINISHED, RevisionStatus.ONDISKPUBLISHED]:
-            pass #allowed, but all others from unfinished is not allowed
-        case [RevisionStatus.UNFINISHED, _]:
-            raise IntegrityError("Cannot change revision status to anything other than ONDISKPUBLISHED from UNFINISHED")
+        case [RevisionStatus.REMOTEREQUESTABLE, RevisionStatus.REQUESTABLE]:
+            pass
+        case [RevisionStatus.REQUESTABLE, RevisionStatus.JOBSCHEDULED]:
+            pass
         case [RevisionStatus.JOBSCHEDULED, RevisionStatus.ONDISKPUBLISHED]:
-            pass #Allowed, but all others from jobscheduled is not allowed
-        case [RevisionStatus.JOBSCHEDULED, _]:
-            raise IntegrityError("Cannot change status to anything other than ONDISKPUBLISHED from JOBSCHEDULED")
-        case [RevisionStatus.ONDISKPUBLISHED, _]:
-            raise IntegrityError("Cannot unpublish a revision by changing status from ONDISKPUBLISHED to anything else")
-        case [_, RevisionStatus.REQUESTABLE]:
-            raise IntegrityError("Cannot change status to REQUESTABLE after revision creation")
+            pass
+        case [RevisionStatus.UNFINISHED, RevisionStatus.ONDISKPUBLISHED]:
+            pass
+        case _:
+            raise IntegrityError("Invalid revision status transition: ", oldstatus, newstatus)
+        
+def validate_revision_state(status, is_local, is_generated):
+    match [status, is_local, is_generated]:
+        case [RevisionStatus.REMOTEREQUESTABLE, False, False]:
+            pass
+        case [RevisionStatus.REQUESTABLE, True, True]:
+            pass #Local generated
+        case [RevisionStatus.REQUESTABLE, False, False]:
+            pass #Remote existing
+        case [RevisionStatus.JOBSCHEDULED, True, True]:
+            pass #Local generated
+        case [RevisionStatus.JOBSCHEDULED, False, False]:
+            pass #Remote existing
+        case [RevisionStatus.UNFINISHED, True, False]:
+            pass
+        case [RevisionStatus.ONDISKPUBLISHED, _, _]:
+            pass
+        case _: raise IntegrityError("Invalid revision state: status:{status}, local:{local}, generated:{generated}".format(status, is_local, is_generated))

@@ -22,6 +22,7 @@ django-model-utils
 - [x] Implement 1 dummy generation functionality
 - [ ] Implement api
 - [ ] Implement download jobs
+  - [] Check that scheduled remote jobs are finished when syncing
 
 
 ## Not MVP

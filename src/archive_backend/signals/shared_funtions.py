@@ -14,7 +14,7 @@ def PostNewRevisionEvent(instance: Revision):
         CreateLocalRequestableRevision(dependency)
 
 def CreateLocalRequestableRevision(self : Edition):
-    """Creates a new local requestable revision for an edition, if needed. Will throw error in integrity signals if called on a remote edition."""
+    """Creates a new local requestable revision for an edition, if needed. Used to symbolize revisions that can be generated."""
     #Unfinished is filted for the case where a previously regular version with 
     # an unfinished revision is changed to a generated version
     latestRevision = self.revisions.order_by('-date').exclude(status=RevisionStatus.UNFINISHED).first()
@@ -33,9 +33,34 @@ def CreateLocalRequestableRevision(self : Edition):
         # call new revision event on it to be sure it gets back into the pipeline
         PostNewRevisionEvent(latestRevision)
         return latestRevision
+    if latestRevision.status == RevisionStatus.REMOTEJOBSCHEDULED or latestRevision.status == RevisionStatus.REMOTEREQUESTABLE:
+        raise IntegrityError("Revision requested to be generated has remote job or remote requestable revisions, should not be possible. Revision ID: " + str(latestRevision.pk))
     #revision is already scheduled
     return latestRevision
     
+def _canBeRequestedAutomatically(self: Revision):
+    """Checks if a revision can be requested non-manually."""
+    if self.status == RevisionStatus.ONDISKPUBLISHED:
+        return True
+    if self.status == RevisionStatus.JOBSCHEDULED:
+        return True
+    if self.status == RevisionStatus.UNFINISHED:
+        return False
+    if self.status == RevisionStatus.REMOTEJOBSCHEDULED:
+        return True
+    if self.status == RevisionStatus.REMOTEREQUESTABLE:
+        return False
+    if self.status == RevisionStatus.REQUESTABLE:
+        if self.from_remote.is_this_site:
+            #its generated
+            parent_revision = self.belongs_to.revisions.order_by('-date').exclude(status=RevisionStatus.UNFINISHED).first()
+            if parent_revision is None:
+                raise IntegrityError("Parent edition has no revisions, should not be possible, even remote editions should have an empty requestable revision for generation purposes. Edition ID: " + str(self.belongs_to.pk))
+            return _canBeRequestedAutomatically(parent_revision) #Check if the chain of requestable items is valid
+        else:
+            return True
+    raise Exception("Unknown revision status: " + str(self.status))
+
 
 def _requestGeneratedRevision(self: Revision):
     """Requests a revision to be generated.
@@ -56,11 +81,11 @@ def _requestGeneratedRevision(self: Revision):
                              a new, ensure code makes an initial empty ondisk revision for code integrity. Edition ID: """ 
                              + str(self.belongs_to.actively_generated_from.pk))
     if latestParentRevision.status == RevisionStatus.ONDISKPUBLISHED:
-        QueueGenerationJobForRevision(self)
+        _queueGenerationJobForRevision(self)
     else:
         RequestRevision(latestParentRevision)
 
-def QueueGenerationJobForRevision(self: Revision):
+def _queueGenerationJobForRevision(self: Revision):
     """Queues a revision job for generation."""
     if self.status != RevisionStatus.JOBSCHEDULED:
         raise IntegrityError("Revision is not in a state to be queued for generation. Revision ID: " + str(self.pk))
@@ -73,8 +98,18 @@ def _downloadRemoteRevision(self: Revision):
         raise IntegrityError("Revision is not in a state to be downloaded. Revision ID: " + str(self.pk))
     async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList([self.belongs_to]),
                task_name=("Downloading latest revision for edition: " + self.belongs_to.title)[:100])
+    
+def _requestRemoteJob(self: Revision):
+    """Requests a remote job."""
+    if self.status != RevisionStatus.REMOTEJOBSCHEDULED:
+        raise IntegrityError("Revision is not in a state to be queued for remote request. Revision ID: " + str(self.pk))
+    async_task('archive_backend.jobs.request_remote_requestable', str(self.pk),
+               task_name=("Requesting remote requestable for edition: " + self.belongs_to.title)[:100])
 
-def RequestRevision(self: Revision):
+def RequestRevision(self: Revision, manual_request = False):
+    if not manual_request:
+        if not _canBeRequestedAutomatically(self):
+            return #it cannot be requested automatically
     match self.status:
         case RevisionStatus.ONDISKPUBLISHED:
             return #No need to request, it is already on disk
@@ -85,10 +120,20 @@ def RequestRevision(self: Revision):
         case RevisionStatus.REQUESTABLE:
             self.status = RevisionStatus.JOBSCHEDULED
             self.save()
-    if self.belongs_to.from_remote.is_this_site:
-        _requestGeneratedRevision(self) #Generate the revision
-    else:
-        _downloadRemoteRevision(self) #Download the revision
+
+            if self.belongs_to.from_remote.is_this_site:
+                _requestGeneratedRevision(self) #Generate the revision
+            else:
+                _downloadRemoteRevision(self) #Download the revision
+
+        case RevisionStatus.REMOTEREQUESTABLE:
+            if manual_request:
+                self.status = RevisionStatus.REMOTEJOBSCHEDULED
+                self.save()
+                _requestRemoteJob(self)
+
+        case RevisionStatus.REMOTEJOBSCHEDULED:
+            _requestRemoteJob(self)
 
 
 
