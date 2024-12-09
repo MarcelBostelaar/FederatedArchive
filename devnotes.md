@@ -15,8 +15,7 @@ django-model-utils
 - [x] Move example plugin to its own app
 - [x] Add original filename back to archive file item
 - [x] Fix file format logic in generator runner
-- [ ] Add status remoterequestable
-- [ ] Add authentication hook for autogeneration that allows checks
+- [x] Add status remoterequestable
 - [ ] Test all signals
 - [x] revise generation config somehow, since it now only does one file format to the next
 - [x] Implement 1 dummy generation functionality
