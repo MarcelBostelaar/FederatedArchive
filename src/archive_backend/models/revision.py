@@ -17,6 +17,7 @@ class Revision(RemoteBackupModel):
     date = models.DateTimeField(blank=True, auto_now_add=True)
     entry_file = models.ForeignKey("ArchiveFile", null=True, blank=True, on_delete=models.CASCADE)
     status = models.IntegerField(choices=RevisionStatus.choices, default=RevisionStatus.UNFINISHED, blank=True)
+    generated_from = models.ForeignKey("Revision", null=True, blank=True, on_delete=models.SET_NULL)
 
     field_tracker = FieldTracker(["status"])
 

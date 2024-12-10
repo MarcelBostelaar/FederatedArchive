@@ -5,7 +5,7 @@ from django_q.tasks import async_task
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import *
 from archive_backend.signals.revision_events import (
-    CreateLocalRequestableRevision, DoesItemNeedNewRevision, PostNewRevisionEvent)
+    CreateLocalGeneratedRequestableRevisionFromEdition, CreateLocalRequestableRevision, DoesItemNeedNewRevision, PostNewRevisionEvent)
 
 from .util import (post_save_change_in_any, post_save_change_in_values,
                    post_save_new_item, post_save_new_values,
@@ -36,7 +36,7 @@ def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
 @post_save_change_in_any("generation_config", "actively_generated_from")
 @post_save_new_values_NOTEQUALS_OR(generation_config = None, actively_generated_from = None)
 def AutogenConfigChanged(sender = None, instance = None, *args, **kwargs):
-    CreateLocalRequestableRevision(instance)
+    CreateLocalGeneratedRequestableRevisionFromEdition(instance)
 
 #New editions
 
@@ -47,7 +47,7 @@ def AutogenConfigChanged(sender = None, instance = None, *args, **kwargs):
 def NewGeneratedEdition(sender = None, instance = None, *args, **kwargs):
     #Only fires on local editions, because
     #remote editions can not have generation configurations
-    CreateLocalRequestableRevision(instance)
+    CreateLocalGeneratedRequestableRevisionFromEdition(instance)
 
 #Regular
 @receiver(post_save, sender=Edition)
@@ -74,7 +74,7 @@ def RevisionPublished(sender = None, instance = None, *args, **kwargs):
     # Make a new generated revision for all dependencies
     for dependency in instance.belongs_to.generation_dependencies.all():
         if DoesItemNeedNewRevision(instance, dependency):
-            CreateLocalRequestableRevision(dependency) 
+            CreateLocalRequestableRevision(dependency, instance) 
 
     # Delete all non-backup revisions except the latest one
     for oldRevision in instance.belongs_to.revisions.exclude(is_backup = True).order_by("-date")[1:]:
@@ -84,7 +84,7 @@ def RevisionPublished(sender = None, instance = None, *args, **kwargs):
 
 def GenerationChangeEvent(config):
     for edition in config.edition_set.all():
-        CreateLocalRequestableRevision(edition)
+        CreateLocalGeneratedRequestableRevisionFromEdition(edition)
     for i in config.previous_steps.all():
         GenerationChangeEvent(i)
 

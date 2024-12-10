@@ -7,41 +7,37 @@ from django_q.tasks import async_task
 def PostNewRevisionEvent(instance: Revision):
     """Fired upon a new revision being created, to handle things such as automatic generation and creating new revision for dependencies."""
     if instance.status == RevisionStatus.REQUESTABLE:
-        if (instance.belongs_to.generation_config.automatically_regenerate 
-            or instance.remote_peer.mirror_files):
-            RequestRevision(instance)
-    for dependency in instance.belongs_to.generation_dependencies.all(): #generational dependencies are by definition always local editions
-        CreateLocalRequestableRevision(dependency)
+        if instance.belongs_to.generation_config is not None:
+            #Generated local revision
+            if instance.belongs_to.generation_config.automatically_regenerate:
+                RequestRevision(instance)#Generate the revision
+        else:
+            if instance.from_remote.mirror_files:
+                RequestRevision(instance)#Download the files
 
-def DoesItemNeedNewRevision(sender: Revision, edition_to_generate: Edition):
+    for dependency in instance.belongs_to.generation_dependencies.all(): #generational dependencies are by definition always local editions
+        CreateLocalRequestableRevision(dependency, instance)
+
+def DoesItemNeedNewRevision(generate_from: Revision, edition_to_generate: Edition):
     return (make_new_generated_revision_filters
             .get(edition_to_generate.generation_config.make_new_generated_revision_filter)
-            (edition_to_generate, sender, edition_to_generate.generation_config))
+            (edition_to_generate, generate_from, edition_to_generate.generation_config))
 
-def CreateLocalRequestableRevision(self : Edition):
-    """Creates a new local requestable revision for an edition, if needed. Used to symbolize revisions that can be generated."""
-    #Unfinished is filted for the case where a previously regular version with 
-    # an unfinished revision is changed to a generated version
-    latestRevision = self.revisions.order_by('-date').exclude(status=RevisionStatus.UNFINISHED).first()
+def CreateLocalGeneratedRequestableRevisionFromEdition(edition: Edition):
+    """Creates a new local requestable revision for an edition. 
+    
+    Uses the latest revision of the parent edition as a base at time of calling.
+    
+    Skips check for if it needs to make a new revision."""
+    makefrom = edition.actively_generated_from.revisions.exclude(status = RevisionStatus.UNFINISHED).order_by("-date").first()
+    if makefrom is None:
+        raise IntegrityError("Parent edition has no revisions, should not be possible, even remote editions should have an empty requestable revision")
+    CreateLocalRequestableRevision(edition, makefrom)
 
-    #Automatic generation is handled by the revision signal logic itself
-    if latestRevision is None:
-        rev = Revision.objects.create(belongs_to = self, status = RevisionStatus.REQUESTABLE)
-        rev.save()
-        return rev
-    if latestRevision.status == RevisionStatus.ONDISKPUBLISHED:
-        rev = Revision.objects.create(belongs_to = self, status = RevisionStatus.REQUESTABLE)
-        rev.save()
-        return rev
-    if latestRevision.status == RevisionStatus.REQUESTABLE:
-        #somehow the revision is requestable and a call for another one is given, 
-        # call new revision event on it to be sure it gets back into the pipeline
-        PostNewRevisionEvent(latestRevision)
-        return latestRevision
-    if latestRevision.status == RevisionStatus.REMOTEJOBSCHEDULED or latestRevision.status == RevisionStatus.REMOTEREQUESTABLE:
-        raise IntegrityError("Revision requested to be generated has remote job or remote requestable revisions, should not be possible. Revision ID: " + str(latestRevision.pk))
-    #revision is already scheduled
-    return latestRevision
+def CreateLocalRequestableRevision(for_edition: Edition, from_revision: Revision):
+    """Creates a new local requestable revision for an edition, if needed. Used to symbolize revisions that can be generated or downloaded from a remote."""
+    i = Revision.objects.create(belongs_to = for_edition, status = RevisionStatus.REQUESTABLE, generated_from = from_revision).save()
+    return i
     
 def _requestGeneratedRevision(self: Revision):
     """Requests a revision to be generated.
@@ -50,21 +46,14 @@ def _requestGeneratedRevision(self: Revision):
     request the parent revisions.
     
     Edition it belongs to must be a valid generation configuration."""
-    latestParentRevision = (self.belongs_to
-                            .actively_generated_from
-                            .revisions.exclude(status = RevisionStatus.UNFINISHED)
-                            .order_by('-date')
-                            .first())
-    if latestParentRevision is None:
-        raise IntegrityError("""Parent edition has no revisions, should not be possible, 
-                             even remote editions should have an empty requestable revision 
-                             for generation purposes. If this edition is manually created
-                             a new, ensure code makes an initial empty ondisk revision for code integrity. Edition ID: """ 
+    if self.generated_from is None:
+        raise IntegrityError("""Revision requested for generation has no "generated_from" value, should not be possible.
+                             Edition ID: """ 
                              + str(self.belongs_to.actively_generated_from.pk))
-    if latestParentRevision.status == RevisionStatus.ONDISKPUBLISHED:
+    if self.generated_from.status == RevisionStatus.ONDISKPUBLISHED:
         _queueGenerationJobForRevision(self)
     else:
-        RequestRevision(latestParentRevision)
+        RequestRevision(self.generated_from)
 
 def _queueGenerationJobForRevision(self: Revision):
     """Queues a revision job for generation."""
@@ -88,6 +77,7 @@ def _requestRemoteRequestable(self: Revision):
                task_name=("Requesting remote requestable for edition: " + self.belongs_to.title)[:100])
 
 def RequestRevision(self: Revision):
+    """Requests a revision to be generated or downloaded. Recursively calls parent revisions for download/generation if needed."""
     match self.status:
         case RevisionStatus.ONDISKPUBLISHED:
             return #No need to request, it is already on disk

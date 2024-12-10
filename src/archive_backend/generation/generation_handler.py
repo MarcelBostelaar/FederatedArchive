@@ -8,7 +8,7 @@ from .generation_registries import generators
 from archive_backend.models.archive_file import ArchiveFile
 from archive_backend.models.edition import Edition
 from archive_backend.models.generation_config import GenerationConfig
-from archive_backend.models.revision_file_models import Revision, RevisionStatus
+from archive_backend.models.revision import Revision, RevisionStatus
 
 def generatorLoop(ProcessingFiles: List[ProcessingFile], generatorConfig: GenerationConfig, originalEdition, targetEdition):
     generator = generators.get(generatorConfig.registered_name)

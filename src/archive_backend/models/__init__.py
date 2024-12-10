@@ -5,6 +5,6 @@ from .file_format import *
 from .author_models import *
 from .abstract_document_models import *
 from .edition import *
-from .revision_file_models import *
+from .revision import *
 from .generation_config import *
 from .archive_file import *

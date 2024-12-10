@@ -1,6 +1,6 @@
 from django.db import IntegrityError, models
 from archive_backend.constants import *
-from archive_backend.models.revision_file_models import Revision
+from archive_backend.models.revision import Revision
 from .file_format import FileFormat
 from .util_abstract_models import RemoteModel
 from django.core.files import File

@@ -4,7 +4,7 @@ from archive_backend.models import Edition
 from django_q.tasks import async_task
 
 from archive_backend.models.remote_peer import RemotePeer
-from archive_backend.models.revision_file_models import Revision, RevisionStatus
+from archive_backend.models.revision import Revision, RevisionStatus
 
 def download_latest_revision_for_editions(editionIds):
     """Downloads the latest revision (and milestones) including files for an edition from a remote"""
