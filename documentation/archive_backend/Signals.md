@@ -24,7 +24,7 @@
 | Mirroredremote  | ❌                         | ❌                                     | Request revision | ✔                            |
 
 ## Revision
- - On status change any->ondisk: TODO
+ - On status change any->ondisk:
     - Clean non-milestone versions when a newer version is added
     ![see "edition revision generation activity diagram"](./Edition%20Revision%20Generation%20activity%20diagram.drawio.png)
 

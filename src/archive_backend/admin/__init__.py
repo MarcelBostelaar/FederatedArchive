@@ -26,7 +26,7 @@ for i in remotes:
 
 for i in remotesAliasable:
     admin.site.register(i, RemoteAdminView)
-    admin.site.register(archiveAppConfig.get_model(i.__name__ + "AliasThrough"), AliasAdminModel)
+    admin.site.register(archiveAppConfig.get_model(i.__name__ + "AliasThrough"))
     
 
 admin.site.register(GenerationConfig)
