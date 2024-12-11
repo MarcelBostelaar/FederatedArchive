@@ -18,7 +18,7 @@ class Command(BaseCommand):
                 mirror_files=fake.boolean(),
                 last_checkin=fake.date_time_this_year(),
                 is_this_site=False
-            ).save()
+            )
         print("Finished generating RemotePeer")
         for _ in range(4):
             try:
@@ -37,7 +37,7 @@ class Command(BaseCommand):
                     english_name=fake.language_name(),
                     endonym=fake.word(),
                     child_language_of=None
-                ).save()
+                )
               
             except IntegrityError as e: 
                 print('Unique constraint fail on language dummy')
@@ -49,7 +49,7 @@ class Command(BaseCommand):
             Author.objects.create(
                 fallback_name=fake.name(),
                 birthday=fake.date_of_birth()
-            ).save()
+            )
         print("Finished generating Author")
 
         for _ in range(10):
@@ -58,7 +58,7 @@ class Command(BaseCommand):
                 language=random.choice(Language.objects.all()),
                 translation=fake.name(),
                 description=fake.text()
-            ).save()
+            )
         print("Finished generating AuthorDescriptionTranslation")
 
         for _ in range(4):
@@ -66,7 +66,7 @@ class Command(BaseCommand):
                 original_publication_date=fake.date_this_century(),
                 fallback_name=fake.word()
             )
-            x.save()
+            x
             x.authors.set(random.choices(Author.objects.all(), k=random.randint(1, 3)))
         print("Finished generating AbstractDocument")
 
@@ -76,7 +76,7 @@ class Command(BaseCommand):
                 language=random.choice(Language.objects.all()),
                 translation=fake.word(),
                 description=fake.text()
-            ).save()
+            )
         print("Finished generating AbstractDocumentDescriptionTranslation")
 
         for _ in range(4):
@@ -86,7 +86,7 @@ class Command(BaseCommand):
                 language = random.choice(Language.objects.all()),
                 title = fake.word(),
                 description = fake.text()
-            ).save()
+            )
         print("Finished generating Edition")
             
 
@@ -95,15 +95,8 @@ class Command(BaseCommand):
                 belongs_to=random.choice(Edition.objects.all()),
                 date=fake.date_this_century(),
                 entry_file= None,
-            ).save()
+                status = RevisionStatus.UNFINISHED
+            )
         print("Finished generating Revision")
-
-            
-        for _ in range(4):
-            ArchiveFile.objects.create(
-                belongs_to=random.choice(Revision.objects.all()),
-                file_format=random.choice(FileFormat.objects.all()),
-                filename = fake.word(),
-            ).save()
             
         self.stdout.write(self.style.SUCCESS('Successfully generated dummy data!'))

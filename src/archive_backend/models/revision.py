@@ -21,6 +21,9 @@ class Revision(RemoteBackupModel):
 
     field_tracker = FieldTracker(["status"])
 
+    def __str__(self):
+        return self.belongs_to.title + " - " + str(self.date) + " - [" + RevisionStatus(self.status).name + "]"
+
     def save(self, *args, **kwargs):
         #if parent is generated, edition must be local
         is_generated = self.belongs_to.actively_generated_from is not None
