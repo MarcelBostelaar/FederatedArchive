@@ -21,7 +21,7 @@ def makeAliasSerializers(cls):
     class _AliasableSerializer(serializers.ModelSerializer):
         class Meta:
             model = cls
-            exclude = ["_alias_identifier"]
+            exclude = ["alias_identifier"]
     class _ThoughSerializer(serializers.ModelSerializer):
         class Meta:
             model = archiveAppConfig.get_model(throughname)

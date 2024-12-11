@@ -30,10 +30,10 @@ def AliasableModel(nameOfOwnClass: string):
         Contains all functionality to allow an entry to be an alias of another entry of the same type.
         
         Attributes:
-        _alias_identifier     Internal value used for keeping track of and speeding up alias collections. Very volatile, do not rely on it for anything.
+        alias_identifier     Internal value used for keeping track of and speeding up alias collections. Very volatile, do not rely on it for anything.
         """
         
-        _alias_identifier = models.UUIDField(blank=True, null=True)
+        alias_identifier = models.UUIDField(blank=True, null=True)
         
         def save(self, *args, **kwargs):
             newItem = self._state.adding
@@ -65,7 +65,7 @@ def AliasableModel(nameOfOwnClass: string):
             Relies on the alias identifier of the item to fix up being different from its own.
             """
             alias_id = uuid.uuid4()
-            self._alias_identifier = alias_id
+            self.alias_identifier = alias_id
             self.save()
 
             #Repeatedly sets the alias id of all items connected to items with the new id to the new alias id, until no more items are updated.
@@ -97,7 +97,7 @@ def AliasableModel(nameOfOwnClass: string):
             self.__fixAlias()
             
         def allAliases(self):
-            return self.__class__.objects.filter(alias_identifier = self._alias_identifier)
+            return self.__class__.objects.filter(alias_identifier = self.alias_identifier)
 
         class Meta:
             abstract = True

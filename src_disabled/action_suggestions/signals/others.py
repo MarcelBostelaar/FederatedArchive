@@ -30,7 +30,7 @@ def CheckForIdentificalFormat(sender = None, instance = None, created = None, *a
     similarItems = list(FileFormat.objects.filter(format__icontains=instance.format))
     if len(similarItems) <= 1:
         return
-    aliasIdentifiers = set([x._alias_identifier for x in similarItems])
+    aliasIdentifiers = set([x.alias_identifier for x in similarItems])
     if len(aliasIdentifiers) == 1:
         return
     i= AliasFileFormat(
