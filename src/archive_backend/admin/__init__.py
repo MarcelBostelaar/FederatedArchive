@@ -8,7 +8,7 @@ class AliasAdminModel(admin.ModelAdmin):
     list_display = ["origin", "target", "alias_identifier"]
     
     def alias_identifier(self, obj):
-        return obj.origin.alias_identifier
+        return obj.origin._alias_identifier
 
 
 remotes = [

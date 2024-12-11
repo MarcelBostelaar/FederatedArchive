@@ -56,7 +56,7 @@ def NewGeneratedEdition(sender = None, instance = None, *args, **kwargs):
 def NewRegularEdition(sender = None, instance = None, *args, **kwargs):
     if instance.from_remote.is_this_site:
         #Ensure empty starting revision to prevent autogeneration errors
-        Revision.objects.create(belongs_to = instance, status = RevisionStatus.ONDISKPUBLISHED).save()
+        Revision.objects.create(belongs_to = instance, status = RevisionStatus.ONDISKPUBLISHED)
     #Remote editions should not have local revisions
 
 

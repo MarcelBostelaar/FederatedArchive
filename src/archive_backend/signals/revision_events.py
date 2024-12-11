@@ -36,7 +36,7 @@ def CreateLocalGeneratedRequestableRevisionFromEdition(edition: Edition):
 
 def CreateLocalRequestableRevision(for_edition: Edition, from_revision: Revision):
     """Creates a new local requestable revision for an edition, if needed. Used to symbolize revisions that can be generated or downloaded from a remote."""
-    i = Revision.objects.create(belongs_to = for_edition, status = RevisionStatus.REQUESTABLE, generated_from = from_revision).save()
+    i = Revision.objects.create(belongs_to = for_edition, status = RevisionStatus.REQUESTABLE, generated_from = from_revision)
     return i
     
 def _requestGeneratedRevision(self: Revision):

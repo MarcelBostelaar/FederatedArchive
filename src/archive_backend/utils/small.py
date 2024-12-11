@@ -27,15 +27,13 @@ def batched_bulk_create_boolresult(generator, cls, batch_size = None, ignore_con
     :param batch_size: The size of the batches to create. If left as None, the generator will use the django default.
     :param ignore_conflicts: If True, the bulk_create will ignore conflicts.
     :return True if any objects were created, False otherwise."""
-    made_any = False
+    items_before = cls.objects.count()
     while True:
         batch = list(islice(generator, batch_size))
         if not batch:
             break
-        made = cls.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
-        if len(made) > 0:
-            made_any = True
-    return made_any
+        cls.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
+    return items_before < cls.objects.count()
 
 def batched_bulk_create(generator, cls, batch_size = None, ignore_conflicts = False) -> Iterator[any]:
     """Bulk create a generator of objects in batches of batch_size.
@@ -45,7 +43,7 @@ def batched_bulk_create(generator, cls, batch_size = None, ignore_conflicts = Fa
     :param generator: A generator of the objects to create.
     :param cls: The class of the objects to create.
     :param batch_size: The size of the batches to create. If left as None, the generator will use the django default.
-    :param ignore_conflicts: If True, the bulk_create will ignore conflicts.
+    :param ignore_conflicts: If True, the bulk_create will ignore conflicts. WARNING, setting this to True will not return objects that caused conflicts as well, and will not set the pk's in some databases.
     :return A performant iterator for all created objects in order.
     """
     while True:
@@ -53,6 +51,5 @@ def batched_bulk_create(generator, cls, batch_size = None, ignore_conflicts = Fa
         if not batch:
             break
         made = cls.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
-        if len(made) > 0:
-            for i in made:
-                yield i
+        for i in made:
+            yield i
