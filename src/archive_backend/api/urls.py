@@ -1,26 +1,40 @@
 from django.http import HttpResponse
-from django.urls import include, path
+from django.urls import  path
+from archive_backend.api.view_set import GenericViewset
+from archive_backend.constants import api_subpath
+from rest_framework import viewsets
+from rest_framework.routers import DefaultRouter
 
-from .apiviews import listView, uuidRetrieve
+from archive_backend.models.author_models import Author
+
 from .serializers import generatedSerializers
 
-def uuidPath(serializer):
-    """Generates an api endpoint for a given serializer, using the model name (which uses a uuid as a pk) as the endpoint."""
-    cls = serializer.Meta.model
-    return path(cls.__name__.lower() + '/<uuid:pk>/', uuidRetrieve(cls, serializer).as_view(), name=cls.__name__.lower())
+def itemDisplay(item):
+    alias = ""
+    if item.alias_list is not None:
+        alias = f"""<li><a href="/{item.urlForAliasList()}">Aliases:&emsp;{item.urlForAliasList()}</a></li>"""
 
-def listPath(serializer):
-    """Generates an list view api endpoint for a given serializer, using the model name as the endpoint."""
-    cls = serializer.Meta.model
-    return path(cls.__name__.lower(), listView(cls, serializer).as_view(), name=cls.__name__.lower() + "list")
+    return f"""
+    <h2>{item.itemName()}</h2>
+    <ul>
+        <li><a href="/{item.urlForCoreList()}">List:&emsp;{item.urlForCoreList()}</a></li>
+        <li><a href="/{item.urlForCoreItem("yourpkhere")}">Individual:&emsp;{item.urlForCoreItem("yourpkhere")}</a></li>
+        {alias}
+    </ul>
+"""
+
+def apiIndex(request):
+    x = "".join([itemDisplay(x) for x in generatedSerializers.values()])
+
+    return HttpResponse("<h1>API Index</h1>" + x)
 
 
-
-
-singles = [uuidPath(x.simple) for x in generatedSerializers.values()]
-lists = [listPath(x.simple) for x in generatedSerializers.values()] + [listPath(x.alias) for x in generatedSerializers.values() if x.alias is not None]
-
-urlpatterns = [path("", lambda _: HttpResponse("Hello test!"), name="apiindex"),
-                path("single/", include(singles)),
-                path("list/", include(lists))            
-                ]
+router = DefaultRouter()
+router.register(r'authors', GenericViewset, basename='author')
+urlpatterns = router.urls
+print(urlpatterns)
+# urlpatterns = ([path(api_subpath, apiIndex, name="apiindex")]
+                #    + [x.main_single_path for x in generatedSerializers.values()] 
+                #    + [x.main_list for x in generatedSerializers.values()]
+                #    + [x.alias_list for x in generatedSerializers.values() if x.alias_list is not None]
+                #    )

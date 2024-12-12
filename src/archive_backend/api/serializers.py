@@ -1,19 +1,20 @@
+from django.urls import path
 from rest_framework import serializers
+from archive_backend.api.apiviews import listView, uuidRetrieve
 from archive_backend.models import *
+from archive_backend.constants import api_subpath
 
 class SerializerSet:
-    def __init__(self, simple = None, alias = None):
-        self.simple = simple
-        self.alias = alias
-    simple = None
-    alias = None
+    def __init__(self, main_serializer, alias_table_serializer = None):
+        self.main_serializer = main_serializer
+        self.alias_table_serializer = alias_table_serializer
 
 def makeSimpleRemoteSerializer(cls):
     class _RemotableSerializer(serializers.ModelSerializer):
         class Meta:
             model = cls
             fields = '__all__'
-    return SerializerSet(simple = _RemotableSerializer, alias = None)
+    return SerializerSet(main_serializer = _RemotableSerializer, alias_table_serializer = None)
 
 def makeAliasSerializers(cls):
     name = cls.__name__
@@ -26,7 +27,7 @@ def makeAliasSerializers(cls):
         class Meta:
             model = archiveAppConfig.get_model(throughname)
             fields = '__all__'
-    return SerializerSet(simple = _AliasableSerializer, alias = _ThoughSerializer)
+    return SerializerSet(main_serializer = _AliasableSerializer, alias_table_serializer = _ThoughSerializer)
 
 def makeSerializer(cls):
     base = cls.__bases__[0]
