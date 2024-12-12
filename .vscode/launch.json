@@ -28,6 +28,17 @@
             "gevent": true
         },
         {
+            "name": "Dev turbo migrate (destructive)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\manage.py",
+            "args": [
+                "dev_destructive_supermigrate"
+            ],
+            "django": true,
+            "justMyCode": true
+        },
+        {
             "name": "Make migration",
             "type": "python",
             "request": "launch",
