@@ -1,40 +1,37 @@
+
 from django.http import HttpResponse
-from django.urls import  path
-from archive_backend.api.view_set import GenericViewset
-from archive_backend.constants import api_subpath
-from rest_framework import viewsets
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 
-from archive_backend.models.author_models import Author
+from archive_backend.utils.small import flatten
+from .apiviews import *
 
-from .serializers import generatedSerializers
-
-def itemDisplay(item):
-    alias = ""
-    if item.alias_list is not None:
-        alias = f"""<li><a href="/{item.urlForAliasList()}">Aliases:&emsp;{item.urlForAliasList()}</a></li>"""
-
-    return f"""
-    <h2>{item.itemName()}</h2>
+def htmlPrintViewsetlinks(ViewsDataContainer):
+    base =  f"""
+    <h1>{ViewsDataContainer.model_name}</h1>
     <ul>
-        <li><a href="/{item.urlForCoreList()}">List:&emsp;{item.urlForCoreList()}</a></li>
-        <li><a href="/{item.urlForCoreItem("yourpkhere")}">Individual:&emsp;{item.urlForCoreItem("yourpkhere")}</a></li>
-        {alias}
-    </ul>
-"""
+    <li><a href="/{ViewsDataContainer.list_url}">List view</a></li>
+    <li><a href="/{ViewsDataContainer.detail_url}yourpkhere">Detail view</a></li>
+    """
+    if hasattr(ViewsDataContainer, "alias_url"):
+        base += f"""<li><a href="/{ViewsDataContainer.alias_url}">Aliases</a></li>"""
+    return base + "</ul>"
 
-def apiIndex(request):
-    x = "".join([itemDisplay(x) for x in generatedSerializers.values()])
+views = [
+    RemotePeerViews,
+    LanguageViews,
+    FileFormatViews,
+    AuthorViews,
+    AuthorDescriptionTranslationViews,
+    AbstractDocumentViews,
+    AbstractDocumentDescriptionTranslationViews, 
+    EditionViews,
+    RevisionViews,
+    ArchiveFileViews
+]
 
-    return HttpResponse("<h1>API Index</h1>" + x)
+indexHTML = "".join([htmlPrintViewsetlinks(view) for view in views])
 
+index = lambda _: HttpResponse(indexHTML)
 
-router = DefaultRouter()
-router.register(r'authors', GenericViewset, basename='author')
-urlpatterns = router.urls
-print(urlpatterns)
-# urlpatterns = ([path(api_subpath, apiIndex, name="apiindex")]
-                #    + [x.main_single_path for x in generatedSerializers.values()] 
-                #    + [x.main_list for x in generatedSerializers.values()]
-                #    + [x.alias_list for x in generatedSerializers.values() if x.alias_list is not None]
-                #    )
+urlpatterns = flatten([view.paths for view in views]) + [path(api_subpath, index, name="index"),]
+

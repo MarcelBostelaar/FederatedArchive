@@ -1,21 +1,17 @@
-from rest_framework.generics import RetrieveAPIView
-from rest_framework import generics
 
-def uuidRetrieve(cls, serializer):
-    """Generates a RetrieveAPIView for a given model and serializer."""
-    class uuidRetrieveInternal(RetrieveAPIView):
-        """Retrieve a single instance of a model."""
-        queryset = cls.objects.all()
-        serializer_class = serializer
-        lookup_field = 'pk'
-    generatedName = cls.__name__ + "Retrieve"
-    generated = type(generatedName, (uuidRetrieveInternal, ),
-                     {"__module__" : __name__, "__qualname__" : generatedName})
-    return generated
+from .viewset_data_containers import AliasViewDataContainer, RemoteViewDataContainer
+from . import serializers as s
 
-def listView(cls, serializer):
-    """Generates a view for listing all instances of a model."""
-    class _ItemListView(generics.ListCreateAPIView):
-        queryset = cls.objects.all()
-        serializer_class = serializer
-    return _ItemListView
+api_subpath = "api/"
+
+RemotePeerViews = RemoteViewDataContainer(s.RemotePeerSerializer, api_subpath)
+LanguageViews = AliasViewDataContainer(s.LanguageSerializer, api_subpath)
+FileFormatViews = AliasViewDataContainer(s.FileFormatSerializer, api_subpath)
+AuthorViews = AliasViewDataContainer(s.AuthorSerializer, api_subpath)
+AuthorDescriptionTranslationViews = RemoteViewDataContainer(s.AuthorDescriptionTranslationSerializer, api_subpath)
+AbstractDocumentViews = AliasViewDataContainer(s.AbstractDocumentSerializer, api_subpath)
+AbstractDocumentDescriptionTranslationViews = RemoteViewDataContainer(s.AbstractDocumentDescriptionTranslationSerializer, api_subpath)
+EditionViews = RemoteViewDataContainer(s.EditionSerializer, api_subpath)
+RevisionViews = RemoteViewDataContainer(s.RevisionSerializer, api_subpath)
+ArchiveFileViews = RemoteViewDataContainer(s.ArchiveFileSerializer, api_subpath)
+
