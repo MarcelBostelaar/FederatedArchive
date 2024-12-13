@@ -19,7 +19,7 @@ django-model-utils
 - [ ] Test all signals
 - [x] revise generation config somehow, since it now only does one file format to the next
 - [x] Implement 1 dummy generation functionality
-- [ ] Implement api
+- [x] Implement api
 - [ ] Implement download jobs
   - [] Check that scheduled remote jobs are finished when syncing
 
