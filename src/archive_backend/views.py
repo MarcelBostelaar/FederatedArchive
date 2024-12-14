@@ -8,4 +8,5 @@ from .forms import TestForm
 def index(request):
     return HttpResponse("<style>*{font-size:70px;}</style>Hello world.<br>\
                         <a href='admin'>Admin</a><br>\
-                        <a href='api'>API</a><br>")
+                        <a href='api'>API</a><br>\
+                        <a href='test'>Test</a><br>")

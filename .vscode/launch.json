@@ -39,6 +39,18 @@
             "justMyCode": true
         },
         {
+            "name": "Run server no reload",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\manage.py",
+            "args": [
+                "runserver",
+                "--noreload",
+            ],
+            "django": true,
+            "justMyCode": false
+        },
+        {
             "name": "Make migration",
             "type": "python",
             "request": "launch",

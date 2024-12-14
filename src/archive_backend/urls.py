@@ -2,13 +2,13 @@ from django.http import HttpResponse
 from django.urls import path, include
 from rest_framework import routers
 
-from archive_backend.jobs.syncing_jobs import download_remote_peer
+from archive_backend.jobs.syncing_jobs import download_langauge
 
 
 from . import views
 
 def testRoute(_):
-    download_remote_peer("930c065f-e83c-4304-ac5a-3e4adfcd5741", "http://127.0.0.1:8000")
+    download_langauge("29cd547c-3b24-4945-9545-68f19231660c", "http://127.0.0.1:8000")
     return HttpResponse("No crashes")
 
 urlpatterns = [

@@ -6,22 +6,23 @@ def flatten(x):
     return [item for sublist in x for item in sublist]
 
 class registry:
-    def __init__(self):
+    def __init__(self, registry_name_for_debugging = "unnamed"):
         self._registry = {}
+        self._name = registry_name_for_debugging
 
     def register(self, key, value):
         if key in self._registry:
-            raise ValueError(f"Duplicate registration of {key}")
+            raise ValueError(f"Duplicate registration of {key} in registry {self._name}")
         self._registry[key] = value
 
     def get(self, key):
         if key not in self._registry:
-            raise ValueError(f"Item {key} is not registered")
+            raise ValueError(f"Item {key} is not registered in registry {self._name}")
         return self._registry[key]
     
     def override(self, key, value):
         if key not in self._registry:
-            raise ValueError(f"Item {key} is not registered")
+            raise ValueError(f"Item {key} is not registered in registry {self._name}")
         self._registry[key] = value
     
 def batched_bulk_create_boolresult(generator, cls, batch_size = None, ignore_conflicts = False) -> bool:

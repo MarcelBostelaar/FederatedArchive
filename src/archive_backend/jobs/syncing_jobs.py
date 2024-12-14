@@ -1,16 +1,16 @@
 from archive_backend.generation import startGeneration
 from archive_backend.jobs.util import getObjectListOnlySuccesfull, getObjectOrNone, pkStringList
 from django_q.tasks import async_task
-from archive_backend.models import Revision, RevisionStatus, RemotePeer, Edition
+from archive_backend.models import Revision, RevisionStatus, RemotePeer, Edition, Language
 from archive_backend.api.apiviews import *
-import requests
 from archive_backend.api.serializers import SerializerRegistry
 
 def download_remote_peer(id, from_address):
     result = SerializerRegistry.get(RemotePeer).download_from_remote_site(id, from_address)
     i = 10
 def download_langauge(id, from_address):
-    raise NotImplementedError("Not implemented")
+    result = SerializerRegistry.get(Language).download_from_remote_site(id, from_address)
+    i = 10
 def download_file_format(id, from_address):
     raise NotImplementedError("Not implemented")
 def download_author(id, from_address):
