@@ -1,28 +1,31 @@
 from archive_backend.generation import startGeneration
-from archive_backend.jobs.util import getObjectListOnlySuccesfull, getObjectOrNone, pkStringList, validate_pk_exists
+from archive_backend.jobs.util import getObjectListOnlySuccesfull, getObjectOrNone, pkStringList
 from django_q.tasks import async_task
 from archive_backend.models import Revision, RevisionStatus, RemotePeer, Edition
+from archive_backend.api.apiviews import *
+import requests
+from archive_backend.api.serializers import SerializerRegistry
 
-def download_remote_peer(id):
-    validate_pk_exists(data, "from_remote", RemotePeer)
+def download_remote_peer(id, from_address):
+    result = SerializerRegistry.get(RemotePeer).download_from_remote_site(id, from_address)
+    i = 10
+def download_langauge(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_langauge(id):
+def download_file_format(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_file_format(id):
+def download_author(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_author(id):
+def download_author_description_translation(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_author_description_translation(id):
+def download_abstract_document(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_abstract_document(id):
+def download_abstract_document_description_translation(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_abstract_document_description_translation(id):
+def download_edition(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_edition(id):
+def download_revision(id, from_address):
     raise NotImplementedError("Not implemented")
-def download_revision(id):
-    raise NotImplementedError("Not implemented")
-def download_archive_file(id):
+def download_archive_file(id, from_address):
     raise NotImplementedError("Not implemented")
 
 

@@ -7,6 +7,10 @@ from datetime import datetime
 from django.db.models import Q
 from rest_framework import serializers
 
+from archive_backend.utils.small import registry
+
+ViewContainerRegistry = registry()
+
 class RemoteViewDataContainer:
     def __init__(self, model_serializer, subpath = "", RemoteViewset = None):
         """
@@ -14,6 +18,7 @@ class RemoteViewDataContainer:
         :param subpath: The path that the viewset will be mounted on
         :param RemoteViewset: The viewset that will be used. If None, a default viewset (RemoteViewsetFactory) will be created
         """
+        ViewContainerRegistry.register(model_serializer.Meta.model, self)
         model = model_serializer.Meta.model
         self.model_name = model.__name__
         model_name_lower = model.__name__.lower()
@@ -36,6 +41,7 @@ class AliasViewDataContainer(RemoteViewDataContainer):
         :param AliasView: The view that will be used for the alias view. If None, a default view (AliasSerializerFactory) will be created
         """
         super().__init__(model_serializer, subpath=subpath, RemoteViewset=RemoteVieset)
+        ViewContainerRegistry.override(model_serializer.Meta.model, self)
         model = model_serializer.Meta.model
         model_name = model.__name__.lower()
         if AliasView is None:

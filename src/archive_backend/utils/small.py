@@ -9,15 +9,20 @@ class registry:
     def __init__(self):
         self._registry = {}
 
-    def register(self, name, value):
-        if name in self._registry:
-            raise ValueError(f"Duplicate registration of {name}")
-        self._registry[name] = value
+    def register(self, key, value):
+        if key in self._registry:
+            raise ValueError(f"Duplicate registration of {key}")
+        self._registry[key] = value
 
-    def get(self, name):
-        if name not in self._registry:
-            raise ValueError(f"Item {name} is not registered")
-        return self._registry[name]
+    def get(self, key):
+        if key not in self._registry:
+            raise ValueError(f"Item {key} is not registered")
+        return self._registry[key]
+    
+    def override(self, key, value):
+        if key not in self._registry:
+            raise ValueError(f"Item {key} is not registered")
+        self._registry[key] = value
     
 def batched_bulk_create_boolresult(generator, cls, batch_size = None, ignore_conflicts = False) -> bool:
     """Bulk create a generator of objects in batches of batch_size.
