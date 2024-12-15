@@ -1,26 +1,30 @@
 from itertools import islice
 from typing import Generator, Iterator, List
+from typing import Generic, TypeVar
 
 
 def flatten(x):
     return [item for sublist in x for item in sublist]
 
-class registry:
-    def __init__(self, registry_name_for_debugging = "unnamed"):
-        self._registry = {}
-        self._name = registry_name_for_debugging
+KEY = TypeVar('KEY')
+VALUE = TypeVar('VALUE')
 
-    def register(self, key, value):
+class registry(Generic[KEY, VALUE]):
+    def __init__(self, registry_name_for_debugging: str = "unnamed"):
+        self._registry: dict[KEY, VALUE] = {}
+        self._name: str = registry_name_for_debugging
+
+    def register(self, key: KEY, value: VALUE) -> None:
         if key in self._registry:
             raise ValueError(f"Duplicate registration of {key} in registry {self._name}")
         self._registry[key] = value
 
-    def get(self, key):
+    def get(self, key: KEY) -> VALUE:
         if key not in self._registry:
             raise ValueError(f"Item {key} is not registered in registry {self._name}")
         return self._registry[key]
     
-    def override(self, key, value):
+    def override(self, key: KEY, value: VALUE) -> None:
         if key not in self._registry:
             raise ValueError(f"Item {key} is not registered in registry {self._name}")
         self._registry[key] = value

@@ -1,4 +1,5 @@
 
+from uuid import UUID
 from django.http import HttpResponse
 from django.urls import path
 
@@ -9,11 +10,11 @@ def htmlPrintViewsetlinks(ViewsDataContainer):
     base =  f"""
     <h1>{ViewsDataContainer.model_name}</h1>
     <ul>
-    <li><a href="/{ViewsDataContainer.list_url}">List view</a></li>
-    <li><a href="/{ViewsDataContainer.detail_url}yourpkhere">Detail view</a></li>
+    <li><a href="{ViewsDataContainer.get_list_url("")}">List view</a></li>
+    <li><a href="{ViewsDataContainer.get_detail_url("", UUID())}">Detail view</a></li>
     """
     if hasattr(ViewsDataContainer, "alias_url"):
-        base += f"""<li><a href="/{ViewsDataContainer.alias_url}">Aliases</a></li>"""
+        base += f"""<li><a href="{ViewsDataContainer.get_alias_url("")}">Aliases</a></li>"""
     return base + "</ul>"
 
 views = [

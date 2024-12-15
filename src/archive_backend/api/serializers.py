@@ -7,9 +7,6 @@ from archive_backend.models import *
 from archive_backend.utils import registry
 from .viewset_data_containers import ViewContainerRegistry
 
-#Used to programmatically find a serializer for a remote model using the original model class as a key
-SerializerRegistry = registry(registry_name_for_debugging="Serializers")
-
 class AbstractRemoteSerializer(serializers.ModelSerializer):
     """Utility model serializer subclass that provides functionality to download from a remote to the serializer, with automatically downloading any dependency foreign key items."""
 
@@ -42,7 +39,7 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         Ensure no circular foreign key references are made in the serializers (or models)."""
         own_views = ViewContainerRegistry.get(this_serializer_class_type.Meta.model)
 
-        url = from_ip + "/" + own_views.detail_url + str(id) + "?format=json"
+        url = own_views.get_detail_url(id, from_ip)
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()
@@ -114,6 +111,9 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
 
     class Meta:
         abstract = True
+
+#Used to programmatically find a serializer for a remote model using the original model class as a key
+SerializerRegistry = registry[RemoteModel, AbstractRemoteSerializer](registry_name_for_debugging="Serializers")
 
 class RemotePeerSerializer(AbstractRemoteSerializer):
     class Meta:
