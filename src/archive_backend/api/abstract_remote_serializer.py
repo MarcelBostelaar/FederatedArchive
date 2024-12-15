@@ -26,7 +26,44 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
             SerializerRegistry.register(cls.Meta.model, cls) #Register all subclasses that arent abstract to the registry
 
     @classmethod
-    def download_or_update_from_remote_site(this_serializer_class_type, id, from_ip, recursively_update = False):
+    def create_or_update_from_remote_date(this_serializer_class_type, data: dict, from_ip: str, recursively_update = False):
+        """Attempts to create or update a model instance for this serializer from data retrieved from a remote server.
+
+        Will recursively download all instances of other models this item is dependent on.
+
+        Intended to be used in batch updates when you download a long list of items from a remote.
+        Use download_or_update_from_remote_site with an id for retrieving individual items automatically.
+        
+        :param data A dictionary containing retrieved data
+        :param from_ip The ip to download the instance dependencies from
+        :param recursively_update Set to True if all instances this item depends on need to be updated. 
+        Leave empty or false to only download if there isnt already a copy of it on this server. 
+        Provides single-level protection against circular references (only against direct foreign key to self).
+        Ensure no circular foreign key references are made in the serializers (or models)."""
+        serializer = this_serializer_class_type(data=data)
+
+        all_referenced_fks = serializer.get_referenced_objects()
+        if recursively_update:
+            for (model, referenced_id) in all_referenced_fks:
+                if referenced_id == id:
+                    continue #Self-reference, for remote_models, skip update
+                SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip, recursively_update = True)
+        
+        else:
+            for (model, referenced_id) in all_referenced_fks:
+                if not model.objects.filter(id=referenced_id).exists():
+                    SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip)
+
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(
+            id=id, **validated_data
+        )
+
+        return created_item
+
+    @classmethod
+    def download_or_update_from_remote_site(this_serializer_class_type, id: uuid.UUID, from_ip: str, recursively_update = False):
         """Attempts to download/update a model instance for this serializer from a remote peer using an ip.
 
         Will recursively download all instances of other models this item is dependent on.
@@ -44,33 +81,17 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         response.raise_for_status()
         data = response.json()
 
-        serializer = this_serializer_class_type(data=data)
-
-        all_referenced_fks = serializer.get_referenced_objects()
-        if recursively_update:
-            for (model, refferenced_id) in all_referenced_fks:
-                if refferenced_id == id:
-                    continue #Self-reference, for remote_models
-                SerializerRegistry.get(model).download_from_remote_site(refferenced_id, from_ip, recursively_update = True)
+        return this_serializer_class_type.create_or_update_from_remote_date(
+            data, 
+            from_ip, 
+            recursively_update=recursively_update)
         
-        else:
-            for (model, refferenced_id) in all_referenced_fks:
-                if not model.objects.filter(id=refferenced_id).exists():
-                    SerializerRegistry.get(model).download_from_remote_site(refferenced_id, from_ip)
-
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
-        created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(
-            id=id, **validated_data
-        )
-
-        return created_item
 
     @staticmethod
-    def _try_get_single_id(model, data):
+    def _try_get_single_id(model: RemoteModel, data: dict):
         """Tries to parse data to a uuid. Returns a tuple of the model and the parsed id.
         
-        Will ignore dictionary data as this should be handled by nested serializers."""
+        Will ignore if the data is a dictionary as this indicates it should be handled by nested serializer fields in the serialiser child class."""
         t = type(data)
         if t is dict:
             return []#Item (probably) has custom serialiser as field, which will handle it or throw if it is wrong
@@ -83,7 +104,7 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
             raise ValidationError("Could not parse UUID to actual UUID object")
 
     def get_referenced_objects(self) -> List[Tuple[type, uuid.UUID]]:
-        """Returns a list of all refferenced foreign keys in the initial data.
+        """Returns a list of all referenced foreign keys in the initial data.
 
         Returns list of tuples of (model, id)."""
         data = self.initial_data
