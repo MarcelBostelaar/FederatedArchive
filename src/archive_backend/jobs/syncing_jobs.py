@@ -35,9 +35,9 @@ def update_download_all(from_remote: RemotePeer):
             # 1 Ensure possible table-self references are handled correctly (will send an additional request for each item), as well as catching any race conditions (item was updated in remote to reference new item made after sync of that table)
             # 2 Fire signals and save functions (which may contain validation logic and schedule other jobs)
             # While this may be slower than bulk create, jobs are not expected to be frequent and are handled by the background process
-            SerializerRegistry.get(model).create_or_update_from_remote_data(item)
+            SerializerRegistry.get(model).create_or_update_from_remote_data(item, from_remote.site_adress)
         if ViewContainer.is_alias_container():
-            ViewContainer.download_aliases(from_remote.address)
+            ViewContainer.download_aliases(from_remote.site_adress)
 
     from_remote.last_checkin = datetime_at_job_time
     from_remote.save()

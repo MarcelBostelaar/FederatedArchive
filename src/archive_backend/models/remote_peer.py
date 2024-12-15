@@ -11,6 +11,10 @@ class RemotePeer(RemoteModel):
     last_checkin = models.DateTimeField(blank=True, default=datetime.datetime(1970, 1, 1, 0, 0, 0, 0))
     is_this_site = models.BooleanField(blank=True, default=False)
 
+    #Override from_remote because it must be able to self_reference
+    from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
+    
+
     field_tracker = FieldTracker(fields=["mirror_files"])
 
     def synchableFields(self):

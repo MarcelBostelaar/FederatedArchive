@@ -7,8 +7,6 @@ class RemotePeerSerializer(AbstractRemoteSerializer):
         exclude = ["is_this_site", "mirror_files", "last_checkin"]
 
 class LanguageSerializer(AbstractRemoteSerializer):
-    from_remote = RemotePeerSerializer()
-
     class Meta:
         model = Language
         exclude = ["alias_identifier"]

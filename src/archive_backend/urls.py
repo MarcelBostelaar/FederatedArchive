@@ -10,7 +10,7 @@ from archive_backend.models.remote_peer import RemotePeer
 from . import views
 
 def testRoute(_):
-    update_download_all(RemotePeer.objects.filter(is_this_site = False).first())
+    update_download_all(RemotePeer.objects.filter(site_name = "remote test").first())
     return HttpResponse("No crashes")
 
 urlpatterns = [

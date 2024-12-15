@@ -43,24 +43,65 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         Provides single-level protection against circular references (only against direct foreign key to self).
         Ensure no circular foreign key references are made in the serializers (or models)."""
         serializer = this_serializer_class_type(data=data)
+        self_id = data.get("id", None)
 
         all_referenced_fks = serializer.get_referenced_objects()
+        self_references = []
         if recursively_update:
-            for (model, referenced_id) in all_referenced_fks:
-                if referenced_id == id:
-                    continue #Self-reference, for remote_models, skip update
+            for (model, referenced_id, fieldname) in all_referenced_fks:
+                if referenced_id == self_id:
+                    self_references.append((model, referenced_id, fieldname))
+                    continue #Self-reference
                 SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip, recursively_update = True)
         
         else:
-            for (model, referenced_id) in all_referenced_fks:
+            for (model, referenced_id, fieldname) in all_referenced_fks:
+                if str(referenced_id) == self_id:
+                    self_references.append((model, referenced_id, fieldname))
+                    continue #Self reference
                 if not model.objects.filter(id=referenced_id).exists():
                     SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip)
 
+        for (_, _, fieldname) in self_references:
+            data.pop(fieldname)
+
+        if self_id is not None:
+            data.pop("id")
+
+        #re-make it with data stripped of self refferencing foreign keys
+        serializer = this_serializer_class_type(data=data)
+
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
+
+        if self_id is not None:
+            validated_data["id"] = self_id
+
+        many_to_many = []
+        for (key, value) in data.items():
+            if type(value) is list:
+                many_to_many.append((key, value))
+        for (key, _) in many_to_many:
+            validated_data.pop(key)
+
+
         created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(
-            id=id, **validated_data
+            **validated_data
         )
+
+        did_extra_change = False
+
+        if len(self_references) > 0:
+            did_extra_change = True
+            for (_, _, fieldname) in self_references:
+                setattr(created_item, fieldname, created_item)
+
+        for (field, value) in many_to_many:
+            did_extra_change = True
+            getattr(created_item, field).set(value)
+
+        if did_extra_change:
+            created_item.save()
 
         return created_item
 
@@ -90,25 +131,27 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         
 
     @staticmethod
-    def _try_get_single_id(model: RemoteModel, data: dict):
-        """Tries to parse data to a uuid. Returns a tuple of the model and the parsed id.
+    def _try_get_single_id(model: RemoteModel, data: dict, fieldname: str):
+        """Tries to parse data to a uuid. Returns a tuple of the model, parsed id and the fieldname.
         
         Will ignore if the data is a dictionary as this indicates it should be handled by nested serializer fields in the serialiser child class."""
         t = type(data)
         if t is dict:
             return []#Item (probably) has custom serialiser as field, which will handle it or throw if it is wrong
+        if t is type(None):
+            return []#Nullable field
         if t is not str:
             raise ValidationError("UUID field is not a string")
         try:
             id = uuid.UUID(data)
-            return [(model, id)]
+            return [(model, id, fieldname)]
         except:
             raise ValidationError("Could not parse UUID to actual UUID object")
 
     def get_referenced_objects(self) -> List[Tuple[type, uuid.UUID]]:
         """Returns a list of all referenced foreign keys in the initial data.
 
-        Returns list of tuples of (model, id)."""
+        Returns list of tuples of (model, id, fieldname)."""
         data = self.initial_data
         if data is None:
             raise Exception("No data available to validate, did you pass data=? to the serialiser in its constructor?")
@@ -123,13 +166,13 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
                     if type(related_objects) is not list:
                         raise serializers.ValidationError(f"Field {field.name} must be a list of uuid primary keys")
                     for obj_id in related_objects:
-                        referenced_foreign_keys = referenced_foreign_keys + AbstractRemoteSerializer._try_get_single_id(field.related_model, obj_id)
+                        referenced_foreign_keys = referenced_foreign_keys + AbstractRemoteSerializer._try_get_single_id(field.related_model, obj_id, field.name)
 
                 elif field.many_to_one or field.one_to_one:
                     if field.name not in data.keys():
                         continue #Some foreign keys might not be synched, they will be validated for existance in the validation method of the serializer itself if needed
                     related_object_id = data.get(field.name)
-                    referenced_foreign_keys = referenced_foreign_keys + AbstractRemoteSerializer._try_get_single_id(field.related_model, related_object_id)
+                    referenced_foreign_keys = referenced_foreign_keys + AbstractRemoteSerializer._try_get_single_id(field.related_model, related_object_id, field.name)
         return referenced_foreign_keys
 
     class Meta:

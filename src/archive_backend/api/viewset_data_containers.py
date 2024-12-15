@@ -9,8 +9,9 @@ from datetime import datetime
 
 from django.db.models import Q
 from rest_framework import serializers
+import urllib
 
-from .registries import ViewContainerRegistry
+from .registries import ViewContainerRegistry, SerializerRegistry
 
 class RemoteViewDataContainer:
     def __init__(self, model_serializer, subpath = "", RemoteViewset = None):
@@ -38,7 +39,7 @@ class RemoteViewDataContainer:
 
     @staticmethod
     def _generate_url(on_site, url, **kwargs):
-        args = "?" + "&".join([f"{key}={value}" for key, value in kwargs.items() if value != ""])
+        args = "?" + "&".join([f"{urllib.parse.quote(key)}={urllib.parse.quote(value)}" for key, value in kwargs.items() if value != ""])
         return f"{on_site}/{url}{args}"
 
     def get_list_url(self, on_site = "", json_format = True, updated_after: datetime = None):
@@ -47,7 +48,7 @@ class RemoteViewDataContainer:
                                   format="json" if json_format else "")
 
     def get_detail_url(self, primary_key: UUID, on_site = "", json_format = True):
-        return self._generate_url(on_site, self._list_url + str(primary_key), 
+        return self._generate_url(on_site, self._detail_url + str(primary_key), 
                                   format="json" if json_format else "")
     
     def download_or_update_single_from_remote_site(self, id: UUID, from_adress: str):
@@ -77,7 +78,7 @@ class AliasViewDataContainer(RemoteViewDataContainer):
         return True
 
     def get_alias_url(self, on_site = "", json_format = True, related_to:UUID = None):
-        return self._generate_url(on_site, self._list_url,
+        return self._generate_url(on_site, self._alias_url,
                                   format="json" if json_format else "",
                                   related_to=str(related_to) if related_to is not None else "")
     
@@ -99,8 +100,8 @@ class AliasViewDataContainer(RemoteViewDataContainer):
         data = response.json()
         self.alias_model.objects.bulk_create((
             self.alias_model(
-                origin = item["origin"],
-                target = item["target"]
+                origin_id = item["origin"],
+                target_id = item["target"]
             ) for item in data
         ),
         ignore_conflicts=True)
