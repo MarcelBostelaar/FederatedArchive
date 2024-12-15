@@ -5,16 +5,17 @@ from django.urls import path
 
 from archive_backend.utils.small import flatten
 from .apiviews import *
+from .viewset_data_containers import ViewDataContainer
 
-def htmlPrintViewsetlinks(ViewsDataContainer):
+def htmlPrintViewsetlinks(ViewsDataContainer: ViewDataContainer):
     base =  f"""
     <h1>{ViewsDataContainer.model_name}</h1>
     <ul>
-    <li><a href="{ViewsDataContainer.get_list_url("")}">List view</a></li>
-    <li><a href="{ViewsDataContainer.get_detail_url("", UUID())}">Detail view</a></li>
+    <li><a href="{ViewsDataContainer.get_list_url("", json_format=False)}">List view</a></li>
+    <li><a href="{ViewsDataContainer.get_detail_url("", "", json_format=False)}">Detail view</a></li>
     """
     if hasattr(ViewsDataContainer, "alias_url"):
-        base += f"""<li><a href="{ViewsDataContainer.get_alias_url("")}">Aliases</a></li>"""
+        base += f"""<li><a href="{ViewsDataContainer.get_alias_url("", json_format=False)}">Aliases</a></li>"""
     return base + "</ul>"
 
 views = [

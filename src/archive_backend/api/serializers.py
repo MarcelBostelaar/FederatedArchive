@@ -1,4 +1,3 @@
-from rest_framework import serializers
 from .abstract_remote_serializer import AbstractRemoteSerializer
 from archive_backend.models import *
 

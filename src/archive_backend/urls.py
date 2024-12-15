@@ -14,6 +14,6 @@ def testRoute(_):
 urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path("", views.index, name="index"),
-    path("", include('archive_backend.api.urls')),
+    path("", include('archive_backend.api')),
     path("test", testRoute)
 ]

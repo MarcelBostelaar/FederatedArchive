@@ -2,12 +2,10 @@ from archive_backend.generation import startGeneration
 from archive_backend.jobs.util import getObjectListOnlySuccesfull, getObjectOrNone, pkStringList
 from django_q.tasks import async_task
 from archive_backend.models import Revision, RevisionStatus, RemotePeer, Edition, Language
-from archive_backend.api.apiviews import *
-from archive_backend.api.serializers import SerializerRegistry
+from archive_backend.api import *
 
 def download_remote_peer(id, from_address):
-    result = SerializerRegistry.get(RemotePeer).download_from_remote_site(id, from_address)
-    i = 10
+    SerializerRegistry.get(RemotePeer).download_from_remote_site(id, from_address)
 def download_langauge(id, from_address):
     result = SerializerRegistry.get(Language).download_from_remote_site(id, from_address)
     i = 10
