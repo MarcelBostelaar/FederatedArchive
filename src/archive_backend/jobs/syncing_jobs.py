@@ -25,8 +25,8 @@ def update_download_all(from_remote: RemotePeer):
     datetime_at_job_time = datetime.now()
 
     for model in update_order:
-        ViewContainer = ViewDataContainerRegistry.get(model)
-        url = ViewContainer.get_list_url(on_site=from_remote.address, updated_after=last_checkin)
+        ViewContainer = ViewContainerRegistry.get(model)
+        url = ViewContainer.get_list_url(on_site=from_remote.site_adress, updated_after=last_checkin)
         response = requests.get(url)
         response.raise_for_status()
         data = response.json()

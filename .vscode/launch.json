@@ -39,6 +39,18 @@
             "justMyCode": true
         },
         {
+            "name": "Dev turbo migrate (destructive) no dummydata",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\manage.py",
+            "args": [
+                "dev_destructive_supermigrate",
+                "--nodata"
+            ],
+            "django": true,
+            "justMyCode": true
+        },
+        {
             "name": "Run server no reload",
             "type": "python",
             "request": "launch",

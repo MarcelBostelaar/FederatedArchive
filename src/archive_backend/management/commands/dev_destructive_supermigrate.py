@@ -6,6 +6,9 @@ import os
 class Command(BaseCommand):
     help = 'Deletes old migrations and generates new ones, migrates, creates superuser user: "admin" password "admin", and populates db with dummy data'
 
+    def add_arguments(self , parser):
+        parser.add_argument('--nodata', action='store_true')
+
     def handle(self, *args, **kwargs):
         migrations_files = []
         for root, dirs, files in os.walk('./src'):
@@ -31,12 +34,13 @@ class Command(BaseCommand):
             if not skip:
                 os.remove(file)
             
-
-        os.remove('./src/db.sqlite3')
+        if os.path.exists('./src/db.sqlite3'):
+            os.remove('./src/db.sqlite3')
 
         django.core.management.call_command("makemigrations")
         django.core.management.call_command("migrate")
 
         os.environ.setdefault("DJANGO_SUPERUSER_PASSWORD", "admin")
         django.core.management.call_command("createsuperuser", "--noinput", "--username", "admin", "--email", "admin@admin.admin")
-        django.core.management.call_command("generate_dummy_data")
+        if not kwargs.get('nodata'):
+            django.core.management.call_command("generate_dummy_data")
