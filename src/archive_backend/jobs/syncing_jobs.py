@@ -58,10 +58,8 @@ def download_revisions(revisionIds):
 def download_update_everything_but_revisions(peerIds):
     """Downloads and updates all items from a peer, except revisions and files"""
     remotes = getObjectListOnlySuccesfull(RemotePeer, peerIds)
-    warnings.warn("Executed download_update_everything_but_revisions job. This job is not implemented yet")
-    #dont forget all the through tables
-    #update/set whether or not to mirror files. Signals will handle the rest
-    #TODO implement
+    for i in remotes:
+        update_download_all(i)
 
 def is_remote_revision_downloadable(revisionId):
     raise NotImplementedError("Not implemented yet")
