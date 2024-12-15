@@ -4,8 +4,7 @@ from django.forms import ValidationError
 import requests
 from rest_framework import serializers
 from archive_backend.models import RemoteModel
-from archive_backend.utils import registry
-from .viewset_data_containers import ViewContainerRegistry
+from .registries import *
 
 class AbstractRemoteSerializer(serializers.ModelSerializer):
     """Utility model serializer subclass that provides functionality to download from a remote to the serializer, with automatically downloading any dependency foreign key items."""
@@ -20,13 +19,16 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
     # and more loosely coupled by limiting the code to the level of the serializer itself, 
     # all contained in this parent class. No overrides are done, data from the parent class is 
     # only retrieved (and thus easie to detect and fix if the library ever makes a breaking change).
+
+    pagination_class = None
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if not hasattr(cls.Meta, "abstract") or not cls.Meta.abstract:
             SerializerRegistry.register(cls.Meta.model, cls) #Register all subclasses that arent abstract to the registry
 
     @classmethod
-    def create_or_update_from_remote_date(this_serializer_class_type, data: dict, from_ip: str, recursively_update = False):
+    def create_or_update_from_remote_data(this_serializer_class_type, data: dict, from_ip: str, recursively_update = False):
         """Attempts to create or update a model instance for this serializer from data retrieved from a remote server.
 
         Will recursively download all instances of other models this item is dependent on.
@@ -81,7 +83,7 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         response.raise_for_status()
         data = response.json()
 
-        return this_serializer_class_type.create_or_update_from_remote_date(
+        return this_serializer_class_type.create_or_update_from_remote_data(
             data, 
             from_ip, 
             recursively_update=recursively_update)
@@ -133,5 +135,3 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
     class Meta:
         abstract = True
 
-#Used to programmatically find a serializer for a remote model using the original model class as a key
-SerializerRegistry = registry[RemoteModel, AbstractRemoteSerializer](registry_name_for_debugging="Serializers")

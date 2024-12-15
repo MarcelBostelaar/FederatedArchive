@@ -1,13 +1,10 @@
-
-from uuid import UUID
 from django.http import HttpResponse
 from django.urls import path
 
 from archive_backend.utils.small import flatten
 from .apiviews import *
-from .viewset_data_containers import ViewDataContainer
 
-def htmlPrintViewsetlinks(ViewsDataContainer: ViewDataContainer):
+def htmlPrintViewsetlinks(ViewsDataContainer: RemoteViewDataContainer | AliasViewDataContainer):
     base =  f"""
     <h1>{ViewsDataContainer.model_name}</h1>
     <ul>

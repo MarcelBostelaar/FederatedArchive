@@ -1,5 +1,7 @@
+from typing import override
 from uuid import UUID
 from django.urls import path
+import requests
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.generics import ListAPIView
 from django.apps import apps
@@ -8,9 +10,7 @@ from datetime import datetime
 from django.db.models import Q
 from rest_framework import serializers
 
-from archive_backend.models import RemoteModel
-from archive_backend.utils.small import registry
-
+from .registries import ViewContainerRegistry
 
 class RemoteViewDataContainer:
     def __init__(self, model_serializer, subpath = "", RemoteViewset = None):
@@ -20,9 +20,9 @@ class RemoteViewDataContainer:
         :param RemoteViewset: The viewset that will be used. If None, a default viewset (RemoteViewsetFactory) will be created
         """
         ViewContainerRegistry.register(model_serializer.Meta.model, self)
-        model = model_serializer.Meta.model
-        self.model_name = model.__name__
-        model_name_lower = model.__name__.lower()
+        self.model = model_serializer.Meta.model
+        self.model_name = self.model.__name__
+        model_name_lower = self.model.__name__.lower()
         if RemoteViewset is None:
             RemoteViewset = RemoteViewsetFactory(model_serializer)
         author_list = RemoteViewset.as_view({'get':'list'})
@@ -33,6 +33,9 @@ class RemoteViewDataContainer:
         self.paths = [path(self._list_url, author_list, name=f"{model_name_lower}-list"),
                     path(self._detail_url + "<uuid:pk>", author_detail, name=f"{model_name_lower}-detail")]
     
+    def is_alias_container(self):
+        return False
+
     @staticmethod
     def _generate_url(on_site, url, **kwargs):
         args = "?" + "&".join([f"{key}={value}" for key, value in kwargs.items() if value != ""])
@@ -46,6 +49,9 @@ class RemoteViewDataContainer:
     def get_detail_url(self, primary_key: UUID, on_site = "", json_format = True):
         return self._generate_url(on_site, self._list_url + str(primary_key), 
                                   format="json" if json_format else "")
+    
+    def download_or_update_single_from_remote_site(self, id: UUID, from_adress: str):
+        SerializerRegistry.get(self.model).download_or_update_from_remote_site(id, from_adress)
 
 class AliasViewDataContainer(RemoteViewDataContainer):
     def __init__(self, model_serializer, subpath = "", RemoteVieset = None, AliasView = None):
@@ -57,19 +63,56 @@ class AliasViewDataContainer(RemoteViewDataContainer):
         """
         super().__init__(model_serializer, subpath=subpath, RemoteViewset=RemoteVieset)
         ViewContainerRegistry.override(model_serializer.Meta.model, self)
-        model = model_serializer.Meta.model
-        model_name = model.__name__.lower()
+        model_name = self.model.__name__.lower()
         if AliasView is None:
             AliasView = AliasViewFactory(model_serializer)
+        self.alias_model = AliasView.serializer_class.Meta.model
         alias_list = AliasView.as_view()
 
         self._alias_url = f"{subpath}{model_name}/alias"
         self.paths = self.paths + [path(self._alias_url, alias_list, name=f"{model_name}-alias")]
 
+    @override
+    def is_alias_container(self):
+        return True
+
     def get_alias_url(self, on_site = "", json_format = True, related_to:UUID = None):
         return self._generate_url(on_site, self._list_url,
                                   format="json" if json_format else "",
                                   related_to=str(related_to) if related_to is not None else "")
+    
+    def download_aliases(self, from_ip, related_to: UUID = None):
+        """Downloads all aliases for this model
+        
+        :param related_to the uuid of the object for which to download the aliases. Must exist on this server.
+        If left None, function will download all aliases"""
+        related_object = None
+        if related_to is not None:
+            related_object = self.model.filter(id=related_to).first()
+            if related_object is None:
+                raise Exception("Tried to download aliases for an item not in this database") 
+
+
+        url = self.get_alias_url(on_site=from_ip, json_format=True, related_to=related_to)
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        self.alias_model.objects.bulk_create((
+            self.alias_model(
+                origin = item["origin"],
+                target = item["target"]
+            ) for item in data
+        ),
+        ignore_conflicts=True)
+        if related_object is None:
+            self.model.fixAllAliases()
+        else:
+            related_object.fixAliases()
+
+    @override
+    def download_or_update_single_from_remote_site(self, id: UUID, from_adress: str):
+        super().download_or_update_single_from_remote_site(id, from_adress)
+        self.download_aliases(from_adress, id)
 
 def _AliasSerializerFactory(alias_model):
     class _ThoughSerializer(serializers.ModelSerializer):
@@ -97,6 +140,7 @@ def AliasViewFactory(model_serializer):
     class AbstractAliasView(ListAPIView):
         queryset = remote_model.objects.all()
         serializer_class = _AliasSerializerFactory(remote_model)
+        pagination_class = None
 
         def get_queryset(self):
             the_set = super().get_queryset()
@@ -106,5 +150,3 @@ def AliasViewFactory(model_serializer):
             return the_set
     return AbstractAliasView
 
-ViewDataContainer = RemoteViewDataContainer | AliasViewDataContainer
-ViewContainerRegistry = registry[RemoteModel, ViewDataContainer]()

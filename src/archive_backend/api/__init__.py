@@ -1,4 +1,4 @@
-from .abstract_remote_serializer import SerializerRegistry
+from .registries import *
 from .serializers import (
     RemotePeerSerializer, 
     LanguageSerializer, 
@@ -10,4 +10,16 @@ from .serializers import (
     EditionSerializer, 
     RevisionSerializer, 
     ArchiveFileSerializer)
+from .apiviews import (
+    RemotePeerViews, 
+    LanguageViews, 
+    FileFormatViews, 
+    AuthorViews, 
+    AuthorDescriptionTranslationViews, 
+    AbstractDocumentViews, 
+    AbstractDocumentDescriptionTranslationViews, 
+    EditionViews, 
+    RevisionViews, 
+    ArchiveFileViews
+)
 from .urls import urlpatterns

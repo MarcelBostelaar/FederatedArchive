@@ -1,4 +1,4 @@
-
+from .registries import *
 from .viewset_data_containers import AliasViewDataContainer, RemoteViewDataContainer
 from . import serializers as s
 

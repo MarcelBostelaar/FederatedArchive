@@ -39,7 +39,7 @@ def AliasableModel(nameOfOwnClass: string):
             newItem = self._state.adding
             super(AliasableModel_, self).save(*args, **kwargs)
             if newItem:
-                self.__fixAlias()
+                self.fixAliases()
         
         def synchableFields(cls):
             return super().synchableFields() - set(["alias_identifier"])
@@ -56,10 +56,10 @@ def AliasableModel(nameOfOwnClass: string):
             cls.objects.all().update(alias_identifier = None)
             item = cls.objects.filter(alias_identifier = None).first()
             while item is not None:
-                item.__fixAlias()
+                item.fixAliases()
                 item = cls.objects.filter(alias_identifier = None).first()
 
-        def __fixAlias(self):
+        def fixAliases(self):
             """Fixes alias indirection for items connected to this specific item directly. Use when updating aliases related to this model.
             
             Relies on the alias identifier of the item to fix up being different from its own.
@@ -94,7 +94,7 @@ def AliasableModel(nameOfOwnClass: string):
             archiveAppConfig.get_model(throughTableName).objects.get_or_create(
                     origin=self,
                     target=other)
-            self.__fixAlias()
+            self.fixAliases()
             
         def allAliases(self):
             return self.__class__.objects.filter(alias_identifier = self.alias_identifier)
