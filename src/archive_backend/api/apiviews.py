@@ -19,6 +19,18 @@ class RevisionViewsClass(RemoteViewDataContainer):
                                   format="json" if json_format else "",
                                   related_edition=related_edition if related_edition else "",
                                   latest_only=latest_only if latest_only else "")
+    
+class ArchiveFileViewsClass(RemoteViewDataContainer):
+    """Custom views data container class to add extra url parameters for the list views"""
+    def __init__(self, model_serializer, subpath="", RemoteViewset=None):
+        super().__init__(model_serializer, subpath, RemoteViewset)
+
+    @override
+    def get_list_url(self, on_site = "", json_format = True, updated_after: datetime = None, related_revision: UUID = None):
+        return self._generate_url(on_site, self._list_url, 
+                                  updated_after=updated_after.isoformat() if updated_after else "", 
+                                  format="json" if json_format else "",
+                                  related_revision=related_revision if related_revision else "")
 
 RemotePeerViews = RemoteViewDataContainer(s.RemotePeerSerializer, api_subpath)
 LanguageViews = AliasViewDataContainer(s.LanguageSerializer, api_subpath)
@@ -29,5 +41,5 @@ AbstractDocumentViews = AliasViewDataContainer(s.AbstractDocumentSerializer, api
 AbstractDocumentDescriptionTranslationViews = RemoteViewDataContainer(s.AbstractDocumentDescriptionTranslationSerializer, api_subpath)
 EditionViews = RemoteViewDataContainer(s.EditionSerializer, api_subpath)
 RevisionViews = RevisionViewsClass(s.RevisionSerializer, api_subpath)
-ArchiveFileViews = RemoteViewDataContainer(s.ArchiveFileSerializer, api_subpath)
+ArchiveFileViews = ArchiveFileViewsClass(s.ArchiveFileSerializer, api_subpath)
 

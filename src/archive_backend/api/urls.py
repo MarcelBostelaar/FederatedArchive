@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path
 
+from archive_backend.api.trigger_request import trigger_revision_request
 from archive_backend.models.remote_peer import RemotePeer
 from archive_backend.utils.small import flatten
 from .apiviews import *
@@ -40,5 +41,6 @@ self_remote = lambda _: redirect(RemotePeerViews.get_detail_url(RemotePeer.getLo
 urlpatterns = flatten([view.paths for view in views]) + [
     path(api_subpath, index, name="index"),
     path(api_subpath + "peer_self", self_remote, name="peer_self"),
+    path(api_subpath + "/revision/trigger/<uuid:pk>", trigger_revision_request, name="trigger_revision_request"),
     ]
 

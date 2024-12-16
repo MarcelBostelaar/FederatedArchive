@@ -16,17 +16,15 @@ from archive_backend.signals.revision_events import schedule_download_remote_rev
 def download_revision_job(revisionID):
     """Downloads a revision"""
     revision = getObjectOrNone(Revision, revisionID)
-    warnings.warn("Executed download_latest_revision_for_editions job. This job is not implemented yet")
     if revision is None:
-        raise "Could not find revision with id " + str(revisionID)
+        return
     return download_revision(revision)
-
 
 #Used in NewRegularEdition in post_save_signals
 def create_latest_requestable_revision_for_edition_job(editionId):
     edition = getObjectOrNone(Edition, editionId)
     if edition is None:
-        raise f"Could not find edition with id {editionId}"
+        return
     data = get_json_from_remote(RevisionViews.get_list_url(related_edition=edition.id, latest_only=True, on_site=edition.remote_peer.site_adress))
     if len(data) == 0:
         raise f"No latest revision found for edition with id {edition.id} on remote site {edition.remote_peer.site_name}"

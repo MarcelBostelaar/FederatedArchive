@@ -4,7 +4,6 @@ import requests
 from archive_backend.models import *
 from archive_backend.api import *
 from datetime import datetime
-from django_q.tasks import async_task
 
 update_order = [
         RemotePeer,
@@ -45,24 +44,24 @@ def update_download_all(from_remote: RemotePeer):
 
 def download_revision(revision: Revision):
     """Downloads a revision from a remote"""
-    warnings.warn("Executed download_revisions. This is not implemented yet")
-    raise NotImplementedError("Not implemented yet")
-    #TODO implement
+    remote_status = get_remote_revision_state(revision)
+    if remote_status != RevisionStatus.ONDISKPUBLISHED:
+        raise Exception("Remote revision is not published")
+    if revision.status != RevisionStatus.JOBSCHEDULED:
+        raise Exception("Revision is not scheduled for download")
+    url = ArchiveFileViews.get_list_url(related_revision=revision.id, on_site=revision.from_remote.site_adress)
+    data = get_json_from_remote(url)
+    for data in data:
+        ArchiveFileSerializer.create_or_update_from_remote_data(data, revision.from_remote.site_adress)
+    revision.status = RevisionStatus.ONDISKPUBLISHED
+    revision.save()
 
 def get_remote_revision_state(revision: Revision):
-    raise NotImplementedError("Not implemented yet")
-    #TODO implement
-
-def schedule_task_until_success(func, *task_args, task_name=None, delayInMinutes = 5):
-    """Schedules a task until it is successful"""
-    def wrapped():
-        try:
-            func(*task_args)
-        except Exception as e:
-            pass
-            # async_task(wrapped, task_name=task_name, delay=delayInMinutes*60)
-    # async_task(wrapped, *task_args, task_name=task_name)
-    raise NotImplementedError("Not implemented yet") #TODO
+    data = get_json_from_remote(RevisionViews.get_detail_url(revision.id, on_site=revision.from_remote.site_adress))
+    if data is {}:
+        raise Exception("No remote revision found for this id: " + str(revision.id))
+    status = RevisionStatus(data["status"])
+    return status
 
 def trigger_remote_requestable(revision: Revision):
     """Requests a remote revision"""
