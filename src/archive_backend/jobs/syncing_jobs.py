@@ -3,76 +3,69 @@ import warnings
 
 import requests
 from archive_backend.generation import startGeneration
-from archive_backend.jobs.util import getObjectListOnlySuccesfull, getObjectOrNone, pkStringList
+from .syncing_util import download_revision, get_json_from_remote, get_remote_revision_state, trigger_remote_requestable, update_download_all
+from .util import getObjectListOnlySuccesfull, getObjectOrNone, pkStringList
 from django_q.tasks import async_task
 from archive_backend.models import *
 from archive_backend.api import *
 from datetime import datetime
+from archive_backend.signals.revision_events import schedule_download_remote_revision
 
-update_order = [
-        RemotePeer,
-        Language,
-        FileFormat,
-        Author,
-        AuthorDescriptionTranslation,
-        AbstractDocument,
-        AbstractDocumentDescriptionTranslation,
-        Edition
-] #Revision and ArchiveFile are not included because they are handled by signals based on server settings
 
-def update_download_all(from_remote: RemotePeer):
-    last_checkin = from_remote.last_checkin
-    datetime_at_job_time = datetime.now()
-
-    for model in update_order:
-        ViewContainer = ViewContainerRegistry.get(model)
-        url = ViewContainer.get_list_url(on_site=from_remote.site_adress, updated_after=last_checkin)
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        for item in data:
-            #Use this method to
-            # 1 Ensure possible table-self references are handled correctly (will send an additional request for each item), as well as catching any race conditions (item was updated in remote to reference new item made after sync of that table)
-            # 2 Fire signals and save functions (which may contain validation logic and schedule other jobs)
-            # While this may be slower than bulk create, jobs are not expected to be frequent and are handled by the background process
-            SerializerRegistry.get(model).create_or_update_from_remote_data(item, from_remote.site_adress)
-        if ViewContainer.is_alias_container():
-            ViewContainer.download_aliases(from_remote.site_adress)
-
-    from_remote.last_checkin = datetime_at_job_time
-    from_remote.save()
-
-def download_latest_revision_for_editions(editionIds):
-    """Downloads the latest revision (and milestones) including files for an edition from a remote"""
-    editions = getObjectListOnlySuccesfull(Edition, editionIds)
+#Used in _downloadRemoteRevision in revision_events
+def download_revision_job(revisionID):
+    """Downloads a revision"""
+    revision = getObjectOrNone(Revision, revisionID)
     warnings.warn("Executed download_latest_revision_for_editions job. This job is not implemented yet")
-    #TODO remove old requestable revisions that are created on this site
-    #TODO implement
+    if revision is None:
+        raise "Could not find revision with id " + str(revisionID)
+    return download_revision(revision)
 
-def download_revisions(revisionIds):
-    """Downloads a revision from a remote"""
-    revisions = getObjectListOnlySuccesfull(Revision, revisionIds)
-    warnings.warn("Executed download_revisions job. This job is not implemented yet")
-    #TODO implement
 
-def download_update_everything_but_revisions(peerIds):
+#Used in NewRegularEdition in post_save_signals
+def create_latest_requestable_revision_for_edition_job(editionId):
+    edition = getObjectOrNone(Edition, editionId)
+    if edition is None:
+        raise f"Could not find edition with id {editionId}"
+    data = get_json_from_remote(RevisionViews.get_list_url(related_edition=edition.id, latest_only=True, on_site=edition.remote_peer.site_adress))
+    if len(data) == 0:
+        raise f"No latest revision found for edition with id {edition.id} on remote site {edition.remote_peer.site_name}"
+    if len(data) > 1:
+        raise f"Remote returned multiple revisions for request of latest revision for {edition.id} on remote site {edition.remote_peer.site_name}"
+    RevisionSerializer.create_or_update_from_remote_data(data[0], edition.remote_peer.site_adress)
+
+#Used in ScheduleDownloadAllForPeer in post_save_signals
+def download_update_everything_but_revisions_job(peerIds):
     """Downloads and updates all items from a peer, except revisions and files"""
     remotes = getObjectListOnlySuccesfull(RemotePeer, peerIds)
     for i in remotes:
         update_download_all(i)
 
-def is_remote_revision_downloadable(revisionId):
-    raise NotImplementedError("Not implemented yet")
-
-def request_remote_requestable(revisionId):
+#Used in _requestRemoteRequestable in revision_events
+def trigger_remote_requestable_job(revisionId):
     """Requests a remote revision"""
     revision = getObjectOrNone(Revision, revisionId)
-    warnings.warn("Executed request_remote_requestable job. This job is not implemented yet")
+    warnings.warn("Executed trigger_remote_requestable_job job. This job is not implemented yet")
     if revision is None:
         raise "Could not find revision with id " + str(revisionId)
-    if is_remote_revision_downloadable(revision):
-        revision.status = RevisionStatus.JOBSCHEDULED
-        revision.save()
-        download_revisions([revisionId])
-    #TODO implement sending request
+    remote_revision_state = get_remote_revision_state(revision)
+    match remote_revision_state:
+        case RevisionStatus.ONDISKPUBLISHED:
+            revision.status = RevisionStatus.REQUESTABLE
+            revision.save()
+            return schedule_download_remote_revision(revision)
+        case RevisionStatus.REQUESTABLE:
+            trigger_remote_requestable(revision)
+            return
+        case RevisionStatus.REMOTEREQUESTABLE:
+            trigger_remote_requestable(revision)
+            return
+        case RevisionStatus.JOBSCHEDULED:
+            #Already triggered
+            return
+        case RevisionStatus.REMOTEJOBSCHEDULED:
+            #Already triggered
+            return
+        case _:
+            raise "Invalid remote revision state: " + str(remote_revision_state)
     

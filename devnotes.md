@@ -22,9 +22,10 @@ django-model-utils
 - [x] Implement api
 - [ ] Implement download jobs
   - [] Check that scheduled remote jobs are finished when syncing
-- [ ] Add special endpoint for adding a remote (you need its id)
+- [x] Add special endpoint for adding a remote (you need its id)
 - [ ] Add code to automatically try http or https in a url request in the api
-- [ ] Implement urllib.parse (function quote) to the url args
+- [x] Implement urllib.parse (function quote) to the url args
+- [ ] Do not expose unfinished revisions (or their files) in api
 
 
 ## Not MVP

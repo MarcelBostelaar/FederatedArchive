@@ -1,4 +1,5 @@
 from django.db import IntegrityError
+from archive_backend.jobs.syncing_util import schedule_task_until_success
 from archive_backend.jobs.util import pkStringList
 from archive_backend.models import Edition, Revision, RevisionStatus
 from archive_backend.generation import make_new_generated_revision_filters
@@ -13,7 +14,8 @@ def PostNewRevisionEvent(instance: Revision):
                 RequestRevision(instance)#Generate the revision
         else:
             if instance.from_remote.mirror_files:
-                RequestRevision(instance)#Download the files
+                #Remote revision
+                schedule_download_remote_revision(instance)
 
     for dependency in instance.belongs_to.generation_dependencies.all(): #generational dependencies are by definition always local editions
         CreateLocalRequestableRevision(dependency, instance)
@@ -62,19 +64,21 @@ def _queueGenerationJobForRevision(self: Revision):
     async_task('archive_backend.jobs.generate_revisions', pkStringList([self]),
                task_name=("Generating revision for edition: " + self.belongs_to.title)[:100])
 
-def _downloadRemoteRevision(self: Revision):
+def schedule_download_remote_revision(self: Revision):
     """Downloads a remote revision."""
-    if self.status != RevisionStatus.JOBSCHEDULED or self.status != RevisionStatus.REQUESTABLE:
+    if self.status != RevisionStatus.JOBSCHEDULED and self.status != RevisionStatus.REQUESTABLE:
         raise IntegrityError("Revision is not in a state to be downloaded. Revision ID: " + str(self.pk))
-    async_task('archive_backend.jobs.download_latest_revision_for_editions', pkStringList([self.belongs_to]),
-               task_name=("Downloading latest revision for edition: " + self.belongs_to.title)[:100])
+    async_task('archive_backend.jobs.download_revision_job', str(self.id),
+               task_name=("Downloading revision: " + self.id + " for " + self.belongs_to.title)[:100])
     
 def _requestRemoteRequestable(self: Revision):
     """Requests a remote job."""
     if self.status != RevisionStatus.REMOTEJOBSCHEDULED:
         raise IntegrityError("Revision is not in a state to be queued for remote request. Revision ID: " + str(self.pk))
-    async_task('archive_backend.jobs.request_remote_requestable', str(self.pk),
-               task_name=("Requesting remote requestable for edition: " + self.belongs_to.title)[:100])
+    async_task('archive_backend.jobs.trigger_remote_requestable_job', str(self.pk),
+               task_name=("Triggering remote requestable for edition: " + self.belongs_to.title)[:100])
+    schedule_task_until_success('archive_backend.jobs.download_revision_job', str(self.id),
+               task_name=("Downloading revision: " + self.id + " for " + self.belongs_to.title)[:100])
 
 def RequestRevision(self: Revision):
     """Requests a revision to be generated or downloaded. Recursively calls parent revisions for download/generation if needed."""
@@ -92,7 +96,7 @@ def RequestRevision(self: Revision):
             if self.belongs_to.from_remote.is_this_site:
                 _requestGeneratedRevision(self) #Generate the revision
             else:
-                _downloadRemoteRevision(self) #Download the revision
+                schedule_download_remote_revision(self) #Download the revision
 
         case RevisionStatus.REMOTEREQUESTABLE:
             self.status = RevisionStatus.REMOTEJOBSCHEDULED

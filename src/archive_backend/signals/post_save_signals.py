@@ -13,25 +13,26 @@ from .util import (post_save_change_in_any, post_save_change_in_values,
 
 ##RemotePeer
 
-def ScheduleDownloadAllEditionsForPeer(peer):
-    async_task('archive_backend.jobs.download_update_everything_but_revisions', pkStringList([peer]), 
+def ScheduleDownloadAllForPeer(peer):
+    async_task('archive_backend.jobs.download_update_everything_but_revisions_job', pkStringList([peer]), 
                task_name=("Downloading from peer: " + str(peer.site_name))[:100])
 
 @receiver(post_save, sender=RemotePeer)
 @post_save_change_in_values("mirror_files")
 @post_save_new_values(mirror_files = True)
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
-    ScheduleDownloadAllEditionsForPeer(instance)
+    ScheduleDownloadAllForPeer(instance)
 
 @receiver(post_save, sender=RemotePeer)
 @post_save_new_values(mirror_files = True)
 @post_save_new_item()
 def RemotePeerStartMirroring(sender = None, instance = None, *args, **kwargs):
-    ScheduleDownloadAllEditionsForPeer(instance)
+    ScheduleDownloadAllForPeer(instance)
 
 
 ##Edition
 
+#Changes to generation configs
 @receiver(post_save, sender=Edition)
 @post_save_change_in_any("generation_config", "actively_generated_from")
 @post_save_new_values_NOTEQUALS_OR(generation_config = None, actively_generated_from = None)
@@ -57,7 +58,10 @@ def NewRegularEdition(sender = None, instance = None, *args, **kwargs):
     if instance.from_remote.is_this_site:
         #Ensure empty starting revision to prevent autogeneration errors
         Revision.objects.create(belongs_to = instance, status = RevisionStatus.ONDISKPUBLISHED)
-    #Remote editions should not have local revisions
+    else:
+        #Remote edition, make correct requestable item
+        async_task('archive_backend.jobs.create_latest_requestable_revision_for_edition_job', str(instance.id), 
+                task_name=("Creating requestable revision for: " + str(instance.title))[:100])
 
 
 ##Revision

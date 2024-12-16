@@ -1,6 +1,9 @@
+import json
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import path
 
+from archive_backend.models.remote_peer import RemotePeer
 from archive_backend.utils.small import flatten
 from .apiviews import *
 
@@ -28,9 +31,14 @@ views = [
     ArchiveFileViews
 ]
 
-indexHTML = "".join([htmlPrintViewsetlinks(view) for view in views])
+indexHTML = "".join(["<a href='./peer_self'>This peer api point</a>"] + [htmlPrintViewsetlinks(view) for view in views])
 
 index = lambda _: HttpResponse(indexHTML)
 
-urlpatterns = flatten([view.paths for view in views]) + [path(api_subpath, index, name="index"),]
+self_remote = lambda _: redirect(RemotePeerViews.get_detail_url(RemotePeer.getLocalSite().id), permanent=True)
+
+urlpatterns = flatten([view.paths for view in views]) + [
+    path(api_subpath, index, name="index"),
+    path(api_subpath + "peer_self", self_remote, name="peer_self"),
+    ]
 
