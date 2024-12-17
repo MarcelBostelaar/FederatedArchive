@@ -1,8 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from archive_backend import api
-from archive_backend.api.apiviews import ArchiveFileViews
-from archive_backend.api.serializers import ArchiveFileSerializer
+from archive_backend.api.apiviews import ArchiveFileViews, RevisionViews
+from archive_backend.api.serializers import ArchiveFileSerializer, RevisionSerializer
 from archive_backend.generation.generation_handler import startGeneration
 from archive_backend.jobs.job_exceptions import BaseJobRescheduleException
 from archive_backend.models import *
@@ -83,6 +83,7 @@ def trigger_requestable(revision: Revision):
         case RevisionStatus.JOBSCHEDULED:
             return
         case RevisionStatus.REMOTEJOBSCHEDULED:
+            trigger_remote_requestable(revision)
             return
         case RevisionStatus.REMOTEREQUESTABLE:
             trigger_remote_requestable(revision)
@@ -102,21 +103,55 @@ def trigger_requestable(revision: Revision):
 
 #TODO jobify
 def trigger_remote_requestable(revision: Revision):
-    code = ping_url(api.getTriggerRequestUrl(revision))
-    if code >= 500:
-        raise BaseJobRescheduleException(10, "Remote server returned 500-599 error.")
-    if code >= 400:
-        raise Exception(f"Remote server returned {code} error")
-    if code >= 300:
-        raise Exception(10, "Remote server returned 300-399 error")
-    revision.status = RevisionStatus.REMOTEJOBSCHEDULED
-    revision.save()
+    response = ping_url(api.getTriggerRequestUrl(revision))
+    if response.code >= 500:
+        raise BaseJobRescheduleException(10, f"Remote server returned {response.code} error.")
+    if response.code >= 400:
+        raise Exception(f"Remote server returned {response.code} error")
+    if response.code >= 300:
+        raise Exception(10, f"Remote server returned {response.code} error")
+    #update own data from remote to have status be as up to date as possible
+    RevisionSerializer.download_or_update_from_remote_site(revision.id, revision.from_remote.site_adress)
 
 #TODO jobify
 def full_download_remote_revision(revision: Revision):
+    if revision.status != RevisionStatus.REQUESTABLE or revision.status != RevisionStatus.JOBSCHEDULED:
+        raise Exception("Cannot download a remote revision that is not requestable or scheduled for download")
+    if revision.from_remote.is_this_site:
+        raise Exception("Cannot download a local revision")
+    remote_status = get_remote_revision_state(revision)
+
+    if remote_status == RevisionStatus.UNFINISHED:
+        raise Exception("Remote revision is set to unfinished, should not happen")
+    
     revision.status = RevisionStatus.JOBSCHEDULED
     revision.save()
+
+    match remote_status:
+        case RevisionStatus.ONDISKPUBLISHED:
+            pass
+        case RevisionStatus.REQUESTABLE:
+            trigger_remote_requestable(revision)
+            raise BaseJobRescheduleException(10, "Remote revision is not published yet, but request to do so is now send")
+        case RevisionStatus.REMOTEREQUESTABLE:
+            trigger_remote_requestable(revision)
+            raise BaseJobRescheduleException(10, "Remote revision is not published yet, but request to do so is now send")
+        case RevisionStatus.JOBSCHEDULED:
+            raise BaseJobRescheduleException(10, "Remote revision is not published yet, but it is scheduled")
+        case RevisionStatus.REMOTEJOBSCHEDULED:
+            raise BaseJobRescheduleException(10, "Remote revision is not published yet, but it is scheduled")
+        case _:
+            raise Exception("Impossible code path on match case")
+        
+
     url = ArchiveFileViews.get_list_url(related_revision=revision.id, on_site=revision.from_remote.site_adress)
     data = get_json_from_remote(url)
     for item in data:
         ArchiveFileSerializer.create_or_update_from_remote_data(item, revision.from_remote.site_adress)
+
+def get_remote_revision_state(revision: Revision):
+    data = get_json_from_remote(RevisionViews.get_detail_url(revision.id, on_site=revision.from_remote.site_adress))
+    if data is {}:
+        raise Exception("No remote revision found for this id: " + str(revision.id))
+    status = RevisionStatus(data["status"])
+    return status

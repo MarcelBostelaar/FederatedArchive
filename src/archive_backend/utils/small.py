@@ -83,10 +83,10 @@ def get_json_from_remote(url: str):
         raise JobRescheduleConnectionTimeoutException(10) from e
     
 def ping_url(url: str):
-    """Pings a url and returns status code"""
+    """Pings a url and returns response"""
     try:
         response = requests.get(url)
-        return response.status_code
+        return response
     except requests.ConnectionError as e:
         raise JobRescheduleConnectionError(10) from e
     except requests.ConnectTimeout as e:

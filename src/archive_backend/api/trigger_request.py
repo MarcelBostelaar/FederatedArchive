@@ -2,6 +2,7 @@
 
 from django.http import HttpResponse
 from archive_backend.models.revision import Revision, RevisionStatus
+from archive_backend.signals.revision_signals import trigger_remote_requestable, trigger_requestable
 
 
 def trigger_revision_request(request, pk = None):
@@ -11,15 +12,16 @@ def trigger_revision_request(request, pk = None):
         return HttpResponse("Revision does not exist", status=404)
     revision = Revision.objects.get(pk=pk)
     match revision.status:
-        case RevisionStatus.REMOTEREQUESTABLE:
-            raise NotImplementedError() #TODO
-        case RevisionStatus.REMOTEJOBSCHEDULED:
-            raise NotImplementedError() #TODO
-        case RevisionStatus.REQUESTABLE:
-            raise NotImplementedError() #TODO
-        case RevisionStatus.JOBSCHEDULED:
-            HttpResponse("JOBSCHEDULED", status=200)
-        case RevisionStatus.ONDISKPUBLISHED:
-            HttpResponse("ONDISKPUBLISHED", status=200)
         case RevisionStatus.UNFINISHED:
-            HttpResponse("Revision is not public", status=403)
+            return HttpResponse("Revision is not public", status=403)
+        case RevisionStatus.REMOTEREQUESTABLE:
+            trigger_requestable(revision)
+        case RevisionStatus.REMOTEJOBSCHEDULED:
+            trigger_requestable(revision)
+        case RevisionStatus.REQUESTABLE:
+            trigger_requestable(revision)
+        case RevisionStatus.JOBSCHEDULED:
+            pass
+        case RevisionStatus.ONDISKPUBLISHED:
+            pass
+    return HttpResponse(revision.status, status=200)
