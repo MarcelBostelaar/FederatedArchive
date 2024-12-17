@@ -7,8 +7,8 @@ class ArchiveBackendConfig(AppConfig):
 
     def ready(self):
         import archive_backend.signals
-        from archive_backend.generation.default_generation_filters import always_true_filter, on_backups_filter, if_no_revision_younger_than_filter
-        from archive_backend.generation.generation_registries import make_new_generated_revision_filters
-        make_new_generated_revision_filters.register('always', always_true_filter)
-        make_new_generated_revision_filters.register('for backuprevisions', on_backups_filter)
-        make_new_generated_revision_filters.register('if no revision newer than config:<previous_revision_age> (string)', if_no_revision_younger_than_filter)
+        from archive_backend.generation.default_generation_filters import always, for_backups, if_no_revision_younger_than
+        from archive_backend.generation.generation_registries import revision_generation_functions
+        revision_generation_functions.register('always', always)
+        revision_generation_functions.register('for backuprevisions', for_backups)
+        revision_generation_functions.register('if no revision newer than config:<previous_revision_age> (string)', if_no_revision_younger_than)

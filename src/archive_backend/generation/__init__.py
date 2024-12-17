@@ -1,3 +1,3 @@
-from .generation_registries import generators, make_new_generated_revision_filters
+from .generation_registries import generators, revision_generation_functions
 from .generation_handler import startGeneration
 from .structs import ProcessingFile

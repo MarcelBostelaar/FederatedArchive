@@ -19,24 +19,24 @@ def generatorLoop(ProcessingFiles: List[ProcessingFile], generatorConfig: Genera
     else:
         return generatorLoop(newFiles, generatorConfig.next_step, originalEdition, targetEdition)
 
-def startGeneration(targetRevision: Revision):
-    target_edition = targetRevision.belongs_to
-    parent_edition = target_edition.actively_generated_from
-    if parent_edition == None:
-        raise ValueError("Parent edition of revision to generate is not of type generated")
-    
-    if targetRevision.status != RevisionStatus.JOBSCHEDULED:
+#TODO jobify
+def startGeneration(to_generate: Revision):
+    if to_generate.generated_from == None:
+        raise ValueError("Revision to generate must have a revision it is generated from")
+    if to_generate.status == RevisionStatus.ONDISKPUBLISHED:
+        return #Already done
+    if to_generate.status != RevisionStatus.JOBSCHEDULED:
         raise ValueError("Revision to generate must have a revision with status JOBSCHEDULED")
-
-    most_recent_parent_revision = parent_edition.revisions.filter(status = RevisionStatus.ONDISKPUBLISHED).order_by('-date').first()
-    if most_recent_parent_revision == None:
-        raise ValueError("Parent edition of revision to generate has no published revision")
-
+    if not to_generate.from_remote.is_this_site:
+        raise ValueError("Revision to generate must be from this site")
+    own_edition = to_generate.belongs_to
+    source_edition = to_generate.generated_from.belongs_to
+    source_revision = to_generate.generated_from
 
     #copying existing files to temporary files and wrapping them in ProcessingFiles
     startFiles = []
 
-    for originalfile in most_recent_parent_revision.files.all():
+    for originalfile in source_revision.files.all():
         newProcessingFile = ProcessingFile(originalfile.file_name, originalfile.file_format.format)
         with originalfile.file.open('rb') as src, newProcessingFile.getWriteStream() as dst:
             shutil.copyfileobj(src, dst)
@@ -44,8 +44,7 @@ def startGeneration(targetRevision: Revision):
 
 
     #Start the generation loop
-    processed = generatorLoop(startFiles, target_edition.generation_config, parent_edition, target_edition)
-
+    processed = generatorLoop(startFiles, own_edition.generation_config, source_edition, own_edition)
 
     #Save the processed files to the database
     for processedFile in processed:
@@ -59,11 +58,11 @@ def startGeneration(targetRevision: Revision):
             newFile = File(input)
 
             archiveFile = ArchiveFile.objects.create(
-                belongs_to = targetRevision,
+                belongs_to = to_generate,
                 file_format = format
             )
             archiveFile.saveFile(newFile).save()
 
-    targetRevision.status = RevisionStatus.ONDISKPUBLISHED
-    targetRevision.date = target_edition.date.now()
-    targetRevision.save()
+    to_generate.status = RevisionStatus.ONDISKPUBLISHED
+    to_generate.date = own_edition.date.now()
+    to_generate.save()

@@ -124,7 +124,6 @@ def _AliasSerializerFactory(alias_model):
 
 def RemoteViewsetFactory(model_serializer):
     class RemoteItemViewset(ReadOnlyModelViewSet):
-        queryset = model_serializer.Meta.model.objects.all()
         serializer_class = model_serializer
         
         def get_queryset(self):
@@ -139,7 +138,6 @@ def RemoteViewsetFactory(model_serializer):
 def AliasViewFactory(model_serializer):
     remote_model = apps.get_model('archive_backend.' + model_serializer.Meta.model.__name__ + "AliasThrough")
     class AbstractAliasView(ListAPIView):
-        queryset = remote_model.objects.all()
         serializer_class = _AliasSerializerFactory(remote_model)
         pagination_class = None
 

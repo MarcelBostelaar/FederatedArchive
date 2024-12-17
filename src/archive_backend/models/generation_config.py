@@ -10,6 +10,6 @@ class GenerationConfig(models.Model):
 
     config_json = models.JSONField(default=dict, blank=True)
     next_step = models.ForeignKey('GenerationConfig', on_delete=models.CASCADE, related_name='previous_steps', null=True, blank=True)
-    make_new_generated_revision_filter = models.CharField(max_length=100, blank=False, default="always")
+    revision_generation_function = models.CharField(max_length=100, blank=False, default="always")
 
-    field_tracker = FieldTracker(['registered_name', 'automatically_regenerate', 'config_json', 'next_step', 'make_new_generated_revision_filter'])
+    field_tracker = FieldTracker(['registered_name', 'automatically_regenerate', 'config_json', 'next_step', 'revision_generation_function'])

@@ -20,17 +20,7 @@ def download_revision_job(revisionID):
         return
     return download_revision(revision)
 
-#Used in NewRegularEdition in post_save_signals
-def create_latest_requestable_revision_for_edition_job(editionId):
-    edition = getObjectOrNone(Edition, editionId)
-    if edition is None:
-        return
-    data = get_json_from_remote(RevisionViews.get_list_url(related_edition=edition.id, latest_only=True, on_site=edition.remote_peer.site_adress))
-    if len(data) == 0:
-        raise f"No latest revision found for edition with id {edition.id} on remote site {edition.remote_peer.site_name}"
-    if len(data) > 1:
-        raise f"Remote returned multiple revisions for request of latest revision for {edition.id} on remote site {edition.remote_peer.site_name}"
-    RevisionSerializer.create_or_update_from_remote_data(data[0], edition.remote_peer.site_adress)
+
 
 #Used in ScheduleDownloadAllForPeer in post_save_signals
 def download_update_everything_but_revisions_job(peerIds):
