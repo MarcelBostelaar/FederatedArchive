@@ -2,6 +2,7 @@ import os
 from django import setup
 
 from archive_backend.models.remote_peer import RemotePeer
+from archive_backend.tests.parent_case import ParentTestcase
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 setup()
 
@@ -11,8 +12,9 @@ from archive_backend.models import Edition
 from django.db import IntegrityError
 from archive_backend.models import AbstractDocument, Language, Author, GenerationConfig, Edition
 
-class EditionIntegrityTest(TestCase):
+class EditionIntegrityTest(ParentTestcase):
     def setUp(self):
+        super().setUp()
         self.document = AbstractDocument.objects.create(fallback_name="Test Abstract Document")
         self.language = Language.objects.create(english_name="English", endonym="English", iso_639_code="en")
         self.generation_config = GenerationConfig.objects.create(name="Test Config")

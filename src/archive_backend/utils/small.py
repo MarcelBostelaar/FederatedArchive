@@ -68,26 +68,30 @@ def batched_bulk_create(generator, cls, batch_size = None, ignore_conflicts = Fa
         for i in made:
             yield i
 
-def get_json_from_remote(url: str):
-    """Tries to fetch json from a server.
+class HttpUtil:
+    """Util to perform http commands.
     
-    Throws job reschedule exceptions if connection errors happen"""
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return data
-    except requests.ConnectionError as e:
-        raise JobRescheduleConnectionError(10) from e
-    except requests.ConnectTimeout as e:
-        raise JobRescheduleConnectionTimeoutException(10) from e
-    
-def ping_url(url: str):
-    """Pings a url and returns response"""
-    try:
-        response = requests.get(url)
-        return response
-    except requests.ConnectionError as e:
-        raise JobRescheduleConnectionError(10) from e
-    except requests.ConnectTimeout as e:
-        raise JobRescheduleConnectionTimeoutException(10) from e
+    Exists to easily mock and isolate the requests"""
+    def get_json_from_remote(self, url: str):
+        """Tries to fetch json from a server.
+        
+        Throws job reschedule exceptions if connection errors happen"""
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+            return data
+        except requests.ConnectionError as e:
+            raise JobRescheduleConnectionError(10) from e
+        except requests.ConnectTimeout as e:
+            raise JobRescheduleConnectionTimeoutException(10) from e
+        
+    def ping_url(self, url: str):
+        """Pings a url and returns response"""
+        try:
+            response = requests.get(url)
+            return response
+        except requests.ConnectionError as e:
+            raise JobRescheduleConnectionError(10) from e
+        except requests.ConnectTimeout as e:
+            raise JobRescheduleConnectionTimeoutException(10) from e

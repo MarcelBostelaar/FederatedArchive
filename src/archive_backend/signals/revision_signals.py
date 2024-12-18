@@ -7,7 +7,7 @@ from archive_backend.generation.generation_handler import startGeneration
 from archive_backend.jobs.job_exceptions import BaseJobRescheduleException
 from archive_backend.models import *
 from archive_backend.signals.edition_signals import local_requestable_generation_revision_check
-from archive_backend.utils.small import get_json_from_remote, ping_url
+from archive_backend.utils.small import HttpUtil
 
 from .util import (post_save_change_in_values,
                    post_save_new_item, post_save_new_values, post_save_new_values_NOTEQUALS_OR)
@@ -103,7 +103,7 @@ def trigger_requestable(revision: Revision):
 
 #TODO jobify
 def trigger_remote_requestable(revision: Revision):
-    response = ping_url(api.getTriggerRequestUrl(revision))
+    response = HttpUtil().ping_url(api.getTriggerRequestUrl(revision))
     if response.code >= 500:
         raise BaseJobRescheduleException(10, f"Remote server returned {response.code} error.")
     if response.code >= 400:
@@ -120,16 +120,11 @@ def full_download_remote_revision(revision: Revision):
     if revision.from_remote.is_this_site:
         raise Exception("Cannot download a local revision")
     remote_status = get_remote_revision_state(revision)
-
-    if remote_status == RevisionStatus.UNFINISHED:
-        raise Exception("Remote revision is set to unfinished, should not happen")
     
     revision.status = RevisionStatus.JOBSCHEDULED
     revision.save()
 
     match remote_status:
-        case RevisionStatus.ONDISKPUBLISHED:
-            pass
         case RevisionStatus.REQUESTABLE:
             trigger_remote_requestable(revision)
             raise BaseJobRescheduleException(10, "Remote revision is not published yet, but request to do so is now send")
@@ -140,17 +135,17 @@ def full_download_remote_revision(revision: Revision):
             raise BaseJobRescheduleException(10, "Remote revision is not published yet, but it is scheduled")
         case RevisionStatus.REMOTEJOBSCHEDULED:
             raise BaseJobRescheduleException(10, "Remote revision is not published yet, but it is scheduled")
+        case RevisionStatus.ONDISKPUBLISHED:
+            url = ArchiveFileViews.get_list_url(related_revision=revision.id, on_site=revision.from_remote.site_adress)
+            data = HttpUtil().get_json_from_remote(url)
+            for item in data:
+                ArchiveFileSerializer.create_or_update_from_remote_data(item, revision.from_remote.site_adress)
         case _:
-            raise Exception("Impossible code path on match case")
+            raise Exception(f"Invalid remote status {remote_status}")
         
 
-    url = ArchiveFileViews.get_list_url(related_revision=revision.id, on_site=revision.from_remote.site_adress)
-    data = get_json_from_remote(url)
-    for item in data:
-        ArchiveFileSerializer.create_or_update_from_remote_data(item, revision.from_remote.site_adress)
-
 def get_remote_revision_state(revision: Revision):
-    data = get_json_from_remote(RevisionViews.get_detail_url(revision.id, on_site=revision.from_remote.site_adress))
+    data = HttpUtil().get_json_from_remote(RevisionViews.get_detail_url(revision.id, on_site=revision.from_remote.site_adress))
     if data is {}:
         raise Exception("No remote revision found for this id: " + str(revision.id))
     status = RevisionStatus(data["status"])

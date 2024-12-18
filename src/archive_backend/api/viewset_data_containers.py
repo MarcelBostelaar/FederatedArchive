@@ -11,6 +11,8 @@ from django.db.models import Q
 from rest_framework import serializers
 import urllib
 
+from archive_backend.utils.small import HttpUtil
+
 from .registries import ViewContainerRegistry, SerializerRegistry
 
 class RemoteViewDataContainer:
@@ -95,9 +97,7 @@ class AliasViewDataContainer(RemoteViewDataContainer):
 
 
         url = self.get_alias_url(on_site=from_ip, json_format=True, related_to=related_to)
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
+        data = HttpUtil().get_json_from_remote(url)
         self.alias_model.objects.bulk_create((
             self.alias_model(
                 origin_id = item["origin"],

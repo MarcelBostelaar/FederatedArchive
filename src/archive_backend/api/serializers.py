@@ -1,3 +1,4 @@
+from typing import override
 from .abstract_remote_serializer import AbstractRemoteSerializer
 from archive_backend.models import *
 
@@ -41,12 +42,71 @@ class EditionSerializer(AbstractRemoteSerializer):
         model = Edition
         exclude = ["actively_generated_from", "generation_config"]
 
-class RevisionSerializer(AbstractRemoteSerializer):
 
-    def validate_status(self, value):
-        """Validate remote status"""
-        #TODO implement and change validated status to be appropriate for this (ie if it read "job scheduled" from remote, it should be "remote job scheduled" in this database)
-        raise NotImplementedError()
+
+rs = RevisionStatus
+#first level index, old, next level array of remote, 
+RevisionTransitions = {
+    rs.ONDISKPUBLISHED: {
+        "default": rs.ONDISKPUBLISHED
+    },
+    rs.JOBSCHEDULED: {
+        [rs.ONDISKPUBLISHED, rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]: rs.JOBSCHEDULED,
+        "default": IntegrityError("Revision was in JOBSCHEDULED state, but the remote status was not ONDISKPUBLISHED, JOBSCHEDULED or REMOTEJOBSCHEDULED")
+    },
+    rs.REQUESTABLE: {
+        [rs.ONDISKPUBLISHED]: rs.REQUESTABLE,
+        "default": IntegrityError("Revision was in REQUESTABLE state, but the remote status was not ONDISKPUBLISHED")
+    },
+    rs.REMOTEJOBSCHEDULED: {
+        [rs.ONDISKPUBLISHED]: rs.REQUESTABLE,
+        [rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]: rs.REMOTEJOBSCHEDULED,
+        "default": IntegrityError("Revision was in REMOTEJOBSCHEDULED state, but the remote status was not ONDISKPUBLISHED, JOBSCHEDULED or REMOTEJOBSCHEDULED")
+    },
+    rs.REMOTEREQUESTABLE: {#Also use this case for new items
+        [rs.ONDISKPUBLISHED]: rs.REQUESTABLE,
+        [rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]: rs.REMOTEJOBSCHEDULED,
+        [rs.REQUESTABLE, rs.REMOTEREQUESTABLE]: rs.REMOTEREQUESTABLE,
+        "default": Exception("Unhandled status transition")
+    } 
+}
+
+def get_next_status(old_status, remote_status):
+    if old_status is None: #new item has identical status transition results as REMOTEREQUESTABLE
+        return get_next_status(rs.REMOTEREQUESTABLE, remote_status)
+    
+    new_val = None
+
+    for (key, value) in RevisionTransitions[old_status]:
+        if remote_status in key:
+            new_val = value
+
+    if new_val is None:
+        new_val = RevisionTransitions[old_status]["default"]
+
+    if issubclass(Exception, new_val.__class__):
+        raise new_val
+    return new_val
+        
+
+class RevisionSerializer(AbstractRemoteSerializer):
+    
+    def validate_status(self, value_on_remote):
+        """Transforms the status of a revision to the correct status based on the current status (if the object already exists locally) and the remote status.
+        
+        eg. If the current local status is ONDISKPUBLISHED and the remote status is REQUESTABLE, the status will stay ONDISKPUBLISHED.
+        
+        If the remote status is ONDISKPUBLISHED, the local status will be set to REQUESTABLE, unless it was already JOBSCHEDULED.
+        
+        etc."""
+        old_status = self.initial_data.get("id", None)
+        if old_status is not None:
+            old_status = Revision.objects.get(id=old_status).status
+
+        if old_status is RevisionStatus.UNFINISHED or value_on_remote is RevisionStatus.UNFINISHED:
+            raise IntegrityError("Cannot set status to UNFINISHED or overwrite an UNFINISHED status")
+        
+        return get_next_status(old_status, value_on_remote)
 
     class Meta:
         model = Revision

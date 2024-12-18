@@ -1,9 +1,10 @@
 from typing import List, Tuple
 import uuid
 from django.forms import ValidationError
-import requests
 from rest_framework import serializers
+from archive_backend import utils
 from archive_backend.models import RemoteModel
+from archive_backend.utils.small import HttpUtil
 from .registries import *
 
 class AbstractRemoteSerializer(serializers.ModelSerializer):
@@ -84,6 +85,9 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         for (key, _) in many_to_many:
             validated_data.pop(key)
 
+        if this_serializer_class_type.Meta.model.objects.filter(id = validated_data["id"]).exists():
+            olddata = this_serializer_class_type.Meta.model.objects.get(id = validated_data["id"])
+            validated_data = this_serializer_class_type.pre_save_deserialize_hook(olddata, validated_data)
 
         created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(
             **validated_data
@@ -120,15 +124,12 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         own_views = ViewContainerRegistry.get(this_serializer_class_type.Meta.model)
 
         url = own_views.get_detail_url(id, from_ip)
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
+        data = HttpUtil().get_json_from_remote(url)
 
         return this_serializer_class_type.create_or_update_from_remote_data(
             data, 
             from_ip, 
             recursively_update=recursively_update)
-        
 
     @staticmethod
     def _try_get_single_id(model: RemoteModel, data: dict, fieldname: str):
