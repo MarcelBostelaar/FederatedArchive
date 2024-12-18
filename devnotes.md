@@ -26,6 +26,12 @@ django-model-utils
 - [ ] Add code to automatically try http or https in a url request in the api
 - [x] Implement urllib.parse (function quote) to the url args
 - [ ] Do not expose unfinished revisions (or their files) in api
+- [ ] Automatically add scheduled rechecking of remotes if it doesnt exist in the job queue
+- [ ] Unit tests for automatic synching of basic items
+- [ ] Unit tests for downloading files
+- [ ] Unit tests for downloading revisions
+- [ ] Unit tests for custom revision filters
+- [ ] Unit tests for custom file filters
 
 
 ## Not MVP
