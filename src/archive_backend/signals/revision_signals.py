@@ -28,7 +28,7 @@ def NewLocalGeneratingRequestable(sender = None, instance = None, *args, **kwarg
 @post_save_new_values(status=RevisionStatus.REQUESTABLE)
 @post_save_is_local_model(False)
 def NewRemoteRequestable(sender = None, instance = None, *args, **kwargs):
-    remote_revision_became_requestable(instance)
+    remote_revision_requestable_check(instance)
 
 #State changes
 
@@ -51,11 +51,12 @@ def LocalRevisionRequestable(sender = None, instance = None, *args, **kwargs):
 @post_save_change_in_values("status")
 @post_save_is_local_model(False)
 def RemoteRevisionRequestable(sender = None, instance = None, *args, **kwargs):
-    remote_revision_became_requestable(instance)
+    remote_revision_requestable_check(instance)
 
 # Supporting functions
 
-def remote_revision_became_requestable(revision: Revision):
+def remote_revision_requestable_check(revision: Revision):
+    """Triggers the request (to download it to this server) if the revision is remote and has mirror files"""
     if revision.from_remote.mirror_files:
         trigger_requestable(revision)
 

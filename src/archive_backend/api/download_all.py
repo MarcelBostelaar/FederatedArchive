@@ -3,6 +3,7 @@ from archive_backend.api import *
 from datetime import datetime
 
 from archive_backend.signals.edition_signals import create_requestables
+from archive_backend.signals.revision_signals import remote_revision_requestable_check
 from archive_backend.utils.small import HttpUtil
 
 update_order = [
@@ -21,7 +22,7 @@ update_order = [
 def update_download_all(from_remote: RemotePeer):
     """Updates all models that are from a remote peer.
     
-    Does a full re-check and also a full download of all needed revisions and files if specified in the remotepeer config."""
+    Does a full re-check and also a full download/update of all needed revisions and files if specified in the remotepeer config."""
     last_checkin = from_remote.last_checkin
     datetime_at_job_time = datetime.now()
 
@@ -40,6 +41,8 @@ def update_download_all(from_remote: RemotePeer):
 
     for edition in Edition.objects.filter(from_remote=from_remote):
         create_requestables(edition)
+    for revision in Revision.objects.filter(from_remote = from_remote, status=RevisionStatus.REQUESTABLE):
+        remote_revision_requestable_check(revision)
 
     from_remote.last_checkin = datetime_at_job_time
     from_remote.save()
