@@ -51,22 +51,22 @@ RevisionTransitions = {
         "default": rs.ONDISKPUBLISHED
     },
     rs.JOBSCHEDULED: {
-        [rs.ONDISKPUBLISHED, rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]: rs.JOBSCHEDULED,
+        frozenset([rs.ONDISKPUBLISHED, rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]): rs.JOBSCHEDULED,
         "default": IntegrityError("Revision was in JOBSCHEDULED state, but the remote status was not ONDISKPUBLISHED, JOBSCHEDULED or REMOTEJOBSCHEDULED")
     },
     rs.REQUESTABLE: {
-        [rs.ONDISKPUBLISHED]: rs.REQUESTABLE,
+        frozenset([rs.ONDISKPUBLISHED]): rs.REQUESTABLE,
         "default": IntegrityError("Revision was in REQUESTABLE state, but the remote status was not ONDISKPUBLISHED")
     },
     rs.REMOTEJOBSCHEDULED: {
-        [rs.ONDISKPUBLISHED]: rs.REQUESTABLE,
-        [rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]: rs.REMOTEJOBSCHEDULED,
+        frozenset([rs.ONDISKPUBLISHED]): rs.REQUESTABLE,
+        frozenset([rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]): rs.REMOTEJOBSCHEDULED,
         "default": IntegrityError("Revision was in REMOTEJOBSCHEDULED state, but the remote status was not ONDISKPUBLISHED, JOBSCHEDULED or REMOTEJOBSCHEDULED")
     },
     rs.REMOTEREQUESTABLE: {#Also use this case for new items
-        [rs.ONDISKPUBLISHED]: rs.REQUESTABLE,
-        [rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]: rs.REMOTEJOBSCHEDULED,
-        [rs.REQUESTABLE, rs.REMOTEREQUESTABLE]: rs.REMOTEREQUESTABLE,
+        frozenset([rs.ONDISKPUBLISHED]): rs.REQUESTABLE,
+        frozenset([rs.JOBSCHEDULED, rs.REMOTEJOBSCHEDULED]): rs.REMOTEJOBSCHEDULED,
+        frozenset([rs.REQUESTABLE, rs.REMOTEREQUESTABLE]): rs.REMOTEREQUESTABLE,
         "default": Exception("Unhandled status transition")
     } 
 }
