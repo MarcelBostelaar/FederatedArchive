@@ -18,7 +18,9 @@ def get_remote_model_serializer_pair(model: Type[RemoteModel]):
 def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
     """Transforms a function call into a queued job call.
 
-    If global config.do_job_queueing is set to False (use --nojobqueing on runbackend command), function will work as if decorator does not exist (and will not catch BaseJobRescheduleExceptions).
+    If global config.do_job_queueing is set to False (use --nojobqueing on runbackend command), or decorated function is called with force_call_synchronously=True, the function will work as if decorator does not exist (no use of djang-q, no catching of BaseJobRescheduleExceptions).
+
+    If
 
     Will automatically reschedule itself if a BaseJobRescheduleException was raised is job queueing is enabled.
 
@@ -30,11 +32,11 @@ def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
     :param arg_transformers: A list of tuples of the form (serializer, deserializer) for each argument, such that they can be saved as primitives in the db.
     :param kwarg_transformers: A dictionary of the form {kwarg_name: (serializer, deserializer)} for each kwarg, such that they can be saved as primitives in the db."""
     def decorator(func):
-        def wrapper(*args, called_by_queue_handler=False, **kwargs):
-            #If queueing is disabled, execute directly with no catching
+        def wrapper(*args, called_by_queue_handler=False, force_call_synchronously = False, **kwargs):
+            #If queueing is disabled, or force_call_synchronously is True, execute directly with no catching and no queueing
             #If "called_by_queue_handler" = True, it is called by queue handler, deserializes args and kwargs and runs the original function
             #If "called_by_queue_handler" = False, it is called normally, which then schedules a task for this function with its args serialized
-            if not config.do_job_queueing:
+            if not config.do_job_queueing or force_call_synchronously:
                 func(*args, **kwargs)
                 return
             if called_by_queue_handler:
