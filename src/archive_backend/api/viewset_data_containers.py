@@ -1,7 +1,6 @@
 from typing import override
 from uuid import UUID
 from django.urls import path
-import requests
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.generics import ListAPIView
 from django.apps import apps

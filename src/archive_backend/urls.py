@@ -2,7 +2,6 @@ from django.http import HttpResponse
 from django.urls import path, include
 from rest_framework import routers
 
-from archive_backend.jobs.syncing_jobs import update_download_all
 from archive_backend.models.remote_peer import RemotePeer
 
 
@@ -10,7 +9,7 @@ from archive_backend.models.remote_peer import RemotePeer
 from . import views
 
 def testRoute(_):
-    update_download_all(RemotePeer.objects.filter(site_name = "remote test").first())
+    # update_download_all(RemotePeer.objects.filter(site_name = "remote test").first())
     return HttpResponse("No crashes")
 
 urlpatterns = [

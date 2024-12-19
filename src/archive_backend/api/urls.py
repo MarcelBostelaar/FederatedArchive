@@ -1,11 +1,9 @@
-import json
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path
 
-from archive_backend.api.trigger_request import trigger_revision_request
+from .trigger_request import trigger_revision_request_endpoint, trigger_request_base
 from archive_backend.models.remote_peer import RemotePeer
-from archive_backend.models.revision import Revision
 from archive_backend.utils.small import flatten
 from .apiviews import *
 
@@ -39,13 +37,11 @@ index = lambda _: HttpResponse(indexHTML)
 
 self_remote = lambda _: redirect(RemotePeerViews.get_detail_url(RemotePeer.getLocalSite().id), permanent=True)
 
-trigger_request_base = api_subpath + "/revision/trigger/"
-def getTriggerRequestUrl(revision: Revision):
-    return trigger_request_base + str(revision.id)
+
 
 urlpatterns = flatten([view.paths for view in views]) + [
     path(api_subpath, index, name="index"),
     path(api_subpath + "peer_self", self_remote, name="peer_self"),
-    path(trigger_revision_request + "<uuid:pk>", trigger_revision_request, name="trigger_revision_request"),
+    path(trigger_request_base + "<uuid:pk>", trigger_revision_request_endpoint, name="trigger_revision_request"),
     ]
 

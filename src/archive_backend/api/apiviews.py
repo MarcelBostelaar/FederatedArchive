@@ -43,8 +43,8 @@ class RevisionViewsContainerClass(RemoteViewDataContainer):
                                   updated_after=updated_after.isoformat() if updated_after else "", 
                                   format="json" if json_format else "",
                                   related_edition=related_edition if related_edition else "",
-                                  latest_only=latest_only,
-                                  backsups_only=backsups_only)
+                                  latest_only=str(latest_only) if latest_only else "",
+                                  backsups_only=str(backsups_only) if backsups_only else "")
     
 class ArchiveFileViewset(RemoteViewsetFactory(models.ArchiveFile)):
     @override

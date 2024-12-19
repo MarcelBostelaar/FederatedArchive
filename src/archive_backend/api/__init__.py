@@ -22,4 +22,4 @@ from .apiviews import (
     RevisionViews, 
     ArchiveFileViews
 )
-from .urls import urlpatterns, getTriggerRequestUrl
+from .urls import urlpatterns

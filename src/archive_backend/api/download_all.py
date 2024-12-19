@@ -2,7 +2,6 @@ from archive_backend.models import *
 from archive_backend.api import *
 from datetime import datetime
 
-from archive_backend import utils
 from archive_backend.utils.small import HttpUtil
 
 update_order = [
