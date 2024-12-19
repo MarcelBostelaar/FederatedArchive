@@ -1,11 +1,12 @@
 import os
 from django import setup
 
-from archive_backend.models.remote_peer import RemotePeer
-from archive_backend.tests.parent_case import ParentTestcase
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 setup()
 
+from archive_backend.models.remote_peer import RemotePeer
+
+from archive_backend.tests.parent_case import ParentTestcase
 from django.test import TestCase
 
 from archive_backend.models import Edition

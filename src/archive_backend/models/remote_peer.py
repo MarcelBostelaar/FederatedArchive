@@ -8,7 +8,7 @@ class RemotePeer(RemoteModel):
     site_name = models.CharField(max_length=titleLength)
     site_adress = models.CharField(max_length=maxFileNameLength)
     mirror_files = models.BooleanField(blank=True, default=False)
-    last_checkin = models.DateTimeField(blank=True, default=datetime.datetime(1970, 1, 1, 0, 0, 0, 0))
+    last_checkin = models.DateTimeField(blank=True, default=datetime.datetime(1971, 1, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc))
     is_this_site = models.BooleanField(blank=True, default=False)
 
     #Override from_remote because it must be able to self_reference

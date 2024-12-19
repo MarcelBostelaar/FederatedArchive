@@ -4,7 +4,7 @@ from archive_backend.api.trigger_request import trigger_requestable
 from archive_backend.models import *
 from archive_backend.signals.edition_signals import local_requestable_generation_revision_check
 
-from .util import (post_save_change_in_values,
+from .util import (post_save_change_in_values, post_save_is_local_model,
                    post_save_new_item, post_save_new_values, post_save_new_values_NOTEQUALS_OR)
 
 #New revisions
@@ -17,7 +17,8 @@ def NewOndiskRevision(sender = None, instance = None, *args, **kwargs):
 
 @receiver(post_save, sender=Revision)
 @post_save_new_item()
-@post_save_new_values(status=RevisionStatus.REQUESTABLE, from_remote = RemotePeer.getLocalSite())
+@post_save_new_values(status=RevisionStatus.REQUESTABLE)
+@post_save_is_local_model(True)
 def NewLocalGeneratingRequestable(sender = None, instance = None, *args, **kwargs):
     if instance.belongs_to.generation_config.automatically_regenerate:
         trigger_requestable(instance)
@@ -25,7 +26,7 @@ def NewLocalGeneratingRequestable(sender = None, instance = None, *args, **kwarg
 @receiver(post_save, sender=Revision)
 @post_save_new_item()
 @post_save_new_values(status=RevisionStatus.REQUESTABLE)
-@post_save_new_values_NOTEQUALS_OR(from_remote=RemotePeer.getLocalSite())
+@post_save_is_local_model(False)
 def NewRemoteRequestable(sender = None, instance = None, *args, **kwargs):
     remote_revision_became_requestable(instance)
 
@@ -38,7 +39,8 @@ def RevisionPublished(sender = None, instance = None, *args, **kwargs):
     revision_published_event(instance)
 
 @receiver(post_save, sender=Revision)
-@post_save_new_values(status=RevisionStatus.REQUESTABLE, from_remote=RemotePeer.getLocalSite())
+@post_save_new_values(status=RevisionStatus.REQUESTABLE)
+@post_save_is_local_model(True)
 @post_save_change_in_values("status")
 def LocalRevisionRequestable(sender = None, instance = None, *args, **kwargs):
     if revision.belongs_to.generation_config.automatically_regenerate:
@@ -47,7 +49,7 @@ def LocalRevisionRequestable(sender = None, instance = None, *args, **kwargs):
 @receiver(post_save, sender=Revision)
 @post_save_new_values(status=RevisionStatus.REQUESTABLE)
 @post_save_change_in_values("status")
-@post_save_new_values_NOTEQUALS_OR(from_remote=RemotePeer.getLocalSite())
+@post_save_is_local_model(False)
 def RemoteRevisionRequestable(sender = None, instance = None, *args, **kwargs):
     remote_revision_became_requestable(instance)
 

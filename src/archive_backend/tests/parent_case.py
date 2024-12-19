@@ -16,6 +16,6 @@ class AlwaysErrorHttpUtilMock(HttpUtil):
 
 class ParentTestcase(TestCase):
     def setUp(self):
-        patcher3 = mock.patch('archive_backend.utils.HttpUtil', new=AlwaysErrorHttpUtilMock, autospec=True)
+        patcher3 = mock.patch('archive_backend.utils.HttpUtil', new=AlwaysErrorHttpUtilMock, autospec=False)
         patcher3.start()
         self.addCleanup(patcher3.stop)

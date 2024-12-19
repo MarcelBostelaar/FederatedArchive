@@ -1,11 +1,11 @@
 import os
 from django import setup
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+setup()
 from django.test import TestCase
 
 from archive_backend.tests.parent_case import ParentTestcase
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-setup()
 
 import django
 
@@ -14,7 +14,6 @@ from archive_backend.models import Author
 class AuthorTestCase(ParentTestcase):
     def setUp(self):
         super().setUp()
-        Author.objects.all().delete() #Needs to be done because running this test from vscode somehow copies entire existing db into memory, so dummy data messes with it.
         self.author1 = Author.objects.create(fallback_name="Author 1")
         self.author2 = Author.objects.create(fallback_name="Author 2")
         self.author3 = Author.objects.create(fallback_name="Author 3")

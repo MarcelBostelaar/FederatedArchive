@@ -100,3 +100,12 @@ def post_save_new_item():
                 return func(sender, instance, created, *args, **kwargs)
         return internal_filter
     return inner
+
+def post_save_is_local_model(bool):
+    """Only run the signal on local models, or only on remote models if set to False"""
+    def inner(func):
+        def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
+            if instance.from_remote.is_this_site == bool:
+                return func(sender, instance, created, *args, **kwargs)
+        return internal_filter
+    return inner

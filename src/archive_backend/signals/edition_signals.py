@@ -7,8 +7,8 @@ from archive_backend.generation import revision_generation_functions
 from archive_backend.utils.small import HttpUtil
 
 from .util import (post_save_change_in_any, 
-                   post_save_new_item, post_save_new_values,
-                   post_save_new_values_NOTEQUALS_OR)
+                   post_save_new_item,
+                   post_save_new_values_NOTEQUALS_OR, post_save_is_local_model)
 
 #Changes to generation configs
 @receiver(post_save, sender=Edition)
@@ -23,14 +23,14 @@ def AutogenConfigChanged(sender = None, instance = None, *args, **kwargs):
 @receiver(post_save, sender=Edition)
 @post_save_new_item()
 @post_save_new_values_NOTEQUALS_OR(generation_config = None, actively_generated_from = None)
-@post_save_new_values(from_remote = RemotePeer.getLocalSite())
+@post_save_is_local_model(True)
 def NewGeneratedEdition(sender = None, instance = None, *args, **kwargs):
     local_requestable_generation_revision_check(instance)
 
 #New Remote
 @receiver(post_save, sender=Edition)
 @post_save_new_item()
-@post_save_new_values_NOTEQUALS_OR(from_remote = RemotePeer.getLocalSite())
+@post_save_is_local_model(False)
 def NewRemoteEdition(sender = None, instance = None, *args, **kwargs):
     create_requestable_revisions_for_remote_backups(instance)
     create_requestable_revision_for_remote_latest(instance)

@@ -38,13 +38,13 @@ class RevisionViewsContainerClass(RemoteViewDataContainer):
                      updated_after: datetime = None, 
                      related_edition: UUID = None, 
                      latest_only: bool = False,
-                     backsups_only: bool = False):
+                     backups_only: bool = False):
         return self._generate_url(on_site, self._list_url, 
                                   updated_after=updated_after.isoformat() if updated_after else "", 
                                   format="json" if json_format else "",
-                                  related_edition=related_edition if related_edition else "",
+                                  related_edition=str(related_edition) if related_edition else "",
                                   latest_only=str(latest_only) if latest_only else "",
-                                  backsups_only=str(backsups_only) if backsups_only else "")
+                                  backups_only=str(backups_only) if backups_only else "")
     
 class ArchiveFileViewset(RemoteViewsetFactory(models.ArchiveFile)):
     @override
@@ -66,7 +66,7 @@ class ArchiveFileViewsContainerClass(RemoteViewDataContainer):
         return self._generate_url(on_site, self._list_url, 
                                   updated_after=updated_after.isoformat() if updated_after else "", 
                                   format="json" if json_format else "",
-                                  related_revision=related_revision if related_revision else "")
+                                  related_revision=str(related_revision) if related_revision else "")
 
 RemotePeerViews = RemoteViewDataContainer(s.RemotePeerSerializer, api_subpath)
 LanguageViews = AliasViewDataContainer(s.LanguageSerializer, api_subpath)

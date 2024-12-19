@@ -29,6 +29,18 @@
             "gevent": true
         },
         {
+            "name": "Run tests",
+            "type": "python",
+            "request": "launch",
+            "cwd": "${workspaceFolder}\\src",
+            "program": "manage.py",
+            "args": [
+                "test"
+            ],
+            "django": true,
+            "justMyCode": true
+        },
+        {
             "name": "Dev turbo migrate (destructive)",
             "type": "python",
             "request": "launch",
