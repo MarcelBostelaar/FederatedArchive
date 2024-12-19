@@ -4,6 +4,7 @@ from typing import Generic, TypeVar
 
 import requests
 
+from archive_backend import config
 from archive_backend.jobs.job_exceptions import JobRescheduleConnectionError, JobRescheduleConnectionTimeoutException
 
 
@@ -76,6 +77,8 @@ class HttpUtil:
         """Tries to fetch json from a server.
         
         Throws job reschedule exceptions if connection errors happen"""
+        if config.unit_testing:
+            raise Exception("Tried to run real http command in unit test")
         try:
             response = requests.get(url)
             response.raise_for_status()
@@ -88,6 +91,8 @@ class HttpUtil:
         
     def ping_url(self, url: str):
         """Pings a url and returns response"""
+        if config.unit_testing:
+            raise Exception("Tried to run real http command in unit test")
         try:
             response = requests.get(url)
             return response
