@@ -7,11 +7,10 @@ setup()
 from archive_backend.models.remote_peer import RemotePeer
 
 from archive_backend.tests.parent_case import ParentTestcase
-from django.test import TestCase
 
 from archive_backend.models import Edition
 from django.db import IntegrityError
-from archive_backend.models import AbstractDocument, Language, Author, GenerationConfig, Edition
+from archive_backend.models import AbstractDocument, Language, GenerationConfig, Edition
 
 class EditionIntegrityTest(ParentTestcase):
     def setUp(self):

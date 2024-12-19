@@ -2,6 +2,7 @@ from archive_backend.models import *
 from archive_backend.api import *
 from datetime import datetime
 
+from archive_backend.signals.edition_signals import create_requestables
 from archive_backend.utils.small import HttpUtil
 
 update_order = [
@@ -18,6 +19,9 @@ update_order = [
 
 #TODO jobify
 def update_download_all(from_remote: RemotePeer):
+    """Updates all models that are from a remote peer.
+    
+    Does a full re-check and also a full download of all needed revisions and files if specified in the remotepeer config."""
     last_checkin = from_remote.last_checkin
     datetime_at_job_time = datetime.now()
 
@@ -33,6 +37,9 @@ def update_download_all(from_remote: RemotePeer):
             SerializerRegistry.get(model).create_or_update_from_remote_data(item, from_remote.site_adress)
         if ViewContainer.is_alias_container():
             ViewContainer.download_aliases(from_remote.site_adress)
+
+    for edition in Edition.objects.filter(from_remote=from_remote):
+        create_requestables(edition)
 
     from_remote.last_checkin = datetime_at_job_time
     from_remote.save()

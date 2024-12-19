@@ -32,12 +32,17 @@ def NewGeneratedEdition(sender = None, instance = None, *args, **kwargs):
 @post_save_new_item()
 @post_save_is_local_model(False)
 def NewRemoteEdition(sender = None, instance = None, *args, **kwargs):
-    create_requestable_revisions_for_remote_backups(instance)
-    create_requestable_revision_for_remote_latest(instance)
+    create_requestables(instance)
 
 
 
 #Supporting functions
+
+#TODO jobify
+def create_requestables(edition: Edition):
+    create_requestable_revisions_for_remote_backups(edition)
+    create_requestable_revision_for_remote_latest(edition)
+
 
 def local_requestable_generation_revision_check(edition: Edition):
     fun = revision_generation_functions.get(edition.generation_config.revision_generation_function)
@@ -53,6 +58,7 @@ def create_requestable_revisions_for_remote_backups(edition: Edition):
     for i in data:
         RevisionSerializer.create_or_update_from_remote_data(i, edition.from_remote.site_adress)
 
+#TODO jobify
 def create_requestable_revision_for_remote_latest(edition: Edition):
     url = RevisionViews.get_list_url(
         on_site = edition.from_remote.site_adress, 
