@@ -1,5 +1,5 @@
 # your_app/management/commands/generate_dummy_data.py
-import random
+from io import StringIO
 from django.core.management.base import BaseCommand
 from django.db import IntegrityError
 from faker import Faker
@@ -11,21 +11,25 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         fake = Faker()
-        for _ in range(4):
+        for i in range(4):
             try:
                 FileFormat.objects.create(
-                    format=fake.file_extension()
+                    format="format" + str(i)
                 )
             except IntegrityError as e: 
                 print('Unique constraint fail on file format dummy')
+
+        text_file_format = FileFormat.objects.create(
+            format="txt"
+        )
         print("Finished generating FileFormat")
 
 
-        for _ in range(4):
+        for i in range(4):
             try:
                 Language.objects.create(
                     iso_639_code=fake.language_code(),
-                    english_name=fake.language_name(),
+                    english_name="language" + str(i),
                     endonym=fake.word(),
                     child_language_of=None
                 )
@@ -36,58 +40,154 @@ class Command(BaseCommand):
           
         
 
-        for _ in range(4):
+        for i in range(4):
             Author.objects.create(
-                fallback_name=fake.name(),
+                fallback_name="Author" + str(i),
                 birthday=fake.date_of_birth()
             )
         print("Finished generating Author")
 
-        for _ in range(10):
+        for i in range(4):
             AuthorDescriptionTranslation.objects.create(
-                describes=random.choice(Author.objects.all()),
-                language=random.choice(Language.objects.all()),
-                translation=fake.name(),
-                description=fake.text()
+                describes=Author.objects.all()[i],
+                language=Language.objects.all()[1],
+                translation="Translation" + str(i*2),
+                description="Description" + str(i*2)
+            )
+            AuthorDescriptionTranslation.objects.create(
+                describes=Author.objects.all()[i],
+                language=Language.objects.all()[2],
+                translation="Translation" + str(i*2 + 1),
+                description="Description" + str(i*2 + 1)
             )
         print("Finished generating AuthorDescriptionTranslation")
 
-        for _ in range(4):
+        for i in range(4):
             x = AbstractDocument.objects.create(
                 original_publication_date=fake.date_this_century(),
-                fallback_name=fake.word()
+                fallback_name="AbstractDocument" + str(i),
             )
-            x
-            x.authors.set(random.choices(Author.objects.all(), k=random.randint(1, 3)))
+        AbstractDocument.objects.first().authors.set(Author.objects.all()[:2])
         print("Finished generating AbstractDocument")
 
-        for _ in range(4):
+        for i in range(4):
             AbstractDocumentDescriptionTranslation.objects.create(
-                describes=random.choice(AbstractDocument.objects.all()),
-                language=random.choice(Language.objects.all()),
-                translation=fake.word(),
-                description=fake.text()
+                describes=AbstractDocument.objects.all()[i],
+                language=Language.objects.all()[i],
+                translation="Translation" + str(i),
+                description=str(i) + ": Lorem ipsum dolor sit amet, consectetur adipiscing elit"
             )
         print("Finished generating AbstractDocumentDescriptionTranslation")
 
-        for _ in range(4):
-            Edition.objects.create(
-                edition_of = random.choice(AbstractDocument.objects.all()),
-                publication_date = fake.date_this_century(),
-                language = random.choice(Language.objects.all()),
-                title = fake.word(),
-                description = fake.text()
-            )
-        print("Finished generating Edition")
-            
 
-        for _ in range(4):
-            Revision.objects.create(
-                belongs_to=random.choice(Edition.objects.all()),
-                date=fake.date_this_century(),
-                entry_file= None,
-                status = RevisionStatus.UNFINISHED
+        regular_edition = Edition.objects.create(
+            edition_of = AbstractDocument.objects.all()[0],
+            publication_date = fake.date_this_century(),
+            language = Language.objects.all()[0],
+            title = "Regular edition",
+            description = "Regular edition description"
+        )
+        automatically_generated_edition = Edition.objects.create(
+            edition_of = AbstractDocument.objects.all()[0],
+            publication_date = fake.date_this_century(),
+            language = Language.objects.all()[0],
+            title = "Generated edition automatic",
+            description = "Generated edition description automatic",
+            actively_generated_from = regular_edition,
+            generation_config = GenerationConfig.objects.create(
+                name = "Automatic test config",
+                registered_name = "example_generator_plugin.txt_to_caps",
+                description = "test config description",
+                automatically_regenerate = True,
+                config_json = {"test": "config"}
             )
-        print("Finished generating Revision")
+        )
+        manually_generated_edition = Edition.objects.create(
+            edition_of = AbstractDocument.objects.all()[0],
+            publication_date = fake.date_this_century(),
+            language = Language.objects.all()[0],
+            title = "Generated edition manual",
+            description = "Generated edition description manual",
+            actively_generated_from = regular_edition,
+            generation_config = GenerationConfig.objects.create(
+                name = "Manual test config",
+                registered_name = "example_generator_plugin.txt_to_caps",
+                description = "test config description",
+                automatically_regenerate = False,
+                config_json = {"test": "config"}
+            )
+        )
+        unpublished_edition = Edition.objects.create(
+            edition_of = AbstractDocument.objects.all()[1],
+            publication_date = fake.date_this_century(),
+            language = Language.objects.all()[1],
+            title = "Unpublished edition",
+            description = "Unpublished edition description"
+        )
+        generated_from_unpublished_edition = Edition.objects.create(
+            edition_of = AbstractDocument.objects.all()[1],
+            publication_date = fake.date_this_century(),
+            language = Language.objects.all()[2],
+            title = "Unpublished based autogen edition",
+            description = "Unpublished based autogen edition description",
+            actively_generated_from = unpublished_edition,
+            generation_config = GenerationConfig.objects.create(
+                name = "Unpublished autogen test config",
+                registered_name = "example_generator_plugin.txt_to_caps",
+                description = "test config description",
+                automatically_regenerate = True,
+                config_json = {"test": "config"}
+            )
+        )
+
+        regular_rev = Revision.objects.create(
+            status = RevisionStatus.UNFINISHED,
+            belongs_to = regular_edition,
+            is_backup = False
+        )
+
+        unfinished_rev = Revision.objects.create(
+            status = RevisionStatus.UNFINISHED,
+            belongs_to = unpublished_edition,
+            is_backup = False
+        )
+        
+        file1 = ArchiveFile.objects.create(
+            belongs_to = regular_rev,
+            file_format = text_file_format,
+            file_name = "file1"
+        )
+        
+        file1.file.save("", StringIO("Content of file 1."))
+        
+
+        file2 = ArchiveFile.objects.create(
+            belongs_to = regular_rev,
+            file_format = text_file_format,
+            file_name = "file2"
+        )
+        
+        file2.file.save("", StringIO("Content of file 2."))
+        
+        
+        file3 = ArchiveFile.objects.create(
+            belongs_to = unfinished_rev,
+            file_format = text_file_format,
+            file_name = "file3"
+        )
+        
+        file3.file.save("", StringIO("Content of file 3."))
+        
+        
+        file4 = ArchiveFile.objects.create(
+            belongs_to = unfinished_rev,
+            file_format = text_file_format,
+            file_name = "file4"
+        )
+        
+        file4.file.save("", StringIO("Content of file 4."))
+
+        regular_rev.status = RevisionStatus.ONDISKPUBLISHED
+        regular_rev.save()
             
         self.stdout.write(self.style.SUCCESS('Successfully generated dummy data!'))

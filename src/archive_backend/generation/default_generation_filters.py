@@ -12,7 +12,7 @@ def create_generated_revision(source: Revision, for_edition: Edition):
 
 def always(edition: Edition):
     parent_edition = edition.actively_generated_from
-    parent_revisions = parent_edition.revisions.filter(status_ne = RevisionStatus.UNFINISHED)
+    parent_revisions = parent_edition.revisions.exclude(status = RevisionStatus.UNFINISHED)
     own_revisions = edition.revisions.all()
     for parent_rev in parent_revisions:
         if not own_revisions.filter(generated_from = parent_rev).exists():
@@ -20,7 +20,7 @@ def always(edition: Edition):
 
 def for_backups(edition: Edition):
     parent_edition = edition.actively_generated_from
-    parent_revisions = parent_edition.revisions.filter(status_ne = RevisionStatus.UNFINISHED).filter(is_backup = True)
+    parent_revisions = parent_edition.revisions.exclude(status = RevisionStatus.UNFINISHED).filter(is_backup = True)
     own_revisions = edition.revisions.all()
     for parent_rev in parent_revisions:
         if not own_revisions.filter(generated_from = parent_rev).exists():
@@ -31,7 +31,7 @@ def if_no_revision_younger_than(edition: Edition):
     min_age = timeparse(genconfigjson.get('previous_revision_age', "1000y1d1h1m1s"))
     limit = datetime.now() - min_age
     parent_edition = edition.actively_generated_from
-    parent_revisions = parent_edition.revisions.filter(status_ne = RevisionStatus.UNFINISHED).order_by('-date')
+    parent_revisions = parent_edition.revisions.exclude(status = RevisionStatus.UNFINISHED).order_by('-date')
     if parent_revisions.count() == 0:
         return #Nothing to generate from
     parent_revision = parent_revisions.first()

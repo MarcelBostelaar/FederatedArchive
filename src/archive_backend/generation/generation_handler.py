@@ -1,3 +1,4 @@
+from datetime import datetime
 import shutil
 from typing import List
 from django.core.files import File
@@ -59,10 +60,11 @@ def startGeneration(to_generate: Revision):
 
             archiveFile = ArchiveFile.objects.create(
                 belongs_to = to_generate,
-                file_format = format
+                file_format = format,
+                file_name = processedFile.name
             )
             archiveFile.saveFile(newFile).save()
 
     to_generate.status = RevisionStatus.ONDISKPUBLISHED
-    to_generate.date = own_edition.date.now()
+    to_generate.date = datetime.now()
     to_generate.save()

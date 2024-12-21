@@ -33,6 +33,8 @@ def trigger_requestable(revision: Revision):
                     full_download_remote_revision(revision)
                     return
                 case [_, True]:
+                    revision.status = RevisionStatus.JOBSCHEDULED
+                    revision.save()
                     startGeneration(revision)
                     return
                 case [_, False]:
