@@ -67,8 +67,29 @@ class ArchiveFileViewsContainerClass(RemoteViewDataContainer):
                                   updated_after=updated_after.isoformat() if updated_after else "", 
                                   format="json" if json_format else "",
                                   related_revision=str(related_revision) if related_revision else "")
+    
+class RemotePeerViewset(RemoteViewsetFactory(models.RemotePeer)):
+    @override
+    def get_queryset(self):
+        the_set = super().get_queryset()
+        only_self = self.request.query_params.get('only_self', False)
+        if only_self:
+            the_set = the_set.filter(is_this_site = True)
+        return the_set
 
-RemotePeerViews = RemoteViewDataContainer(s.RemotePeerSerializer, api_subpath)
+class RemotePeerViewsContrainerClass(RemoteViewDataContainer):
+    """Custom views data container class to add extra url parameters for the list views"""
+    def __init__(self, model_serializer, subpath="", RemoteViewset=RemotePeerViewset):
+        super().__init__(model_serializer, subpath, RemoteViewset)
+    
+    @override
+    def get_list_url(self, on_site = "", json_format = True, updated_after: datetime = None, only_self: bool = False):
+        return self._generate_url(on_site, self._list_url, 
+                                  updated_after=updated_after.isoformat() if updated_after else "", 
+                                  format="json" if json_format else "",
+                                  only_self=str(only_self) if only_self else "")
+
+RemotePeerViews = RemotePeerViewsContrainerClass(s.RemotePeerSerializer, api_subpath)
 LanguageViews = AliasViewDataContainer(s.LanguageSerializer, api_subpath)
 FileFormatViews = AliasViewDataContainer(s.FileFormatSerializer, api_subpath)
 AuthorViews = AliasViewDataContainer(s.AuthorSerializer, api_subpath)

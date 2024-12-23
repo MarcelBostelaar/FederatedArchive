@@ -9,8 +9,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         super(Command, self).add_arguments(parser)
         parser.add_argument('--nojobqueing', action='store_true')
+        parser.add_argument('--port', type=str, default='8000')
 
     def handle(self, *args, **kwargs):
         config.do_job_queueing = not kwargs['nojobqueing']
         kwargs.pop('nojobqueing')
-        django.core.management.call_command("runserver", *args, **kwargs)
+        port = kwargs.pop('port')
+        django.core.management.call_command("runserver", port, *args, **kwargs)

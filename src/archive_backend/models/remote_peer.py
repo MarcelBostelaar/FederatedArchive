@@ -5,7 +5,7 @@ from archive_backend.constants import *
 from .util_abstract_models import RemoteModel
 
 class RemotePeer(RemoteModel):
-    site_name = models.CharField(max_length=titleLength)
+    site_name = models.CharField(max_length=titleLength, default="Unnamed Site", blank=True)
     site_adress = models.CharField(max_length=maxFileNameLength)
     mirror_files = models.BooleanField(blank=True, default=False)
     last_checkin = models.DateTimeField(blank=True, default=datetime.datetime(1971, 1, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc))

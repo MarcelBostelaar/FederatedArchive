@@ -14,7 +14,7 @@ class RemoteModel(models.Model):
     from_remote = models.ForeignKey("RemotePeer", blank=False, null=False, on_delete=models.CASCADE, default=getLocalSite)
     last_updated = models.DateTimeField(blank=True, auto_now_add=True)
     # Using UUIDs as primary keys to allows the direct merging of databases without pk and fk conflicts (unless you're astronimically unlucky, one would need to generate 1 billion v4 UUIDs per second for 85 years to have a 50% chance of a single collision).
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=True, blank=True)
     
     class Meta:
         abstract = True
