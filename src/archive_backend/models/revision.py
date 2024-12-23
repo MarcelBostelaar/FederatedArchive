@@ -37,11 +37,24 @@ class Revision(RemoteModel):
         if self.from_remote != self.belongs_to.from_remote:
             raise IntegrityError("Cannot create revisions with a different origin: ", self.from_remote, self.belongs_to.from_remote)
 
+        validate_status_transition(self.field_tracker.previous("status"), self.status)
+
         # Check if the revision status is valid
         validate_revision_state(self.status, is_local, is_generated)
 
         return super().save(*args, **kwargs)
         
+def validate_status_transition(old_status, new_status):
+    if old_status == new_status:
+        return
+    match [old_status, new_status]:
+        case [RevisionStatus.ONDISKPUBLISHED, _]:
+            raise ValueError("Cannot change status from ONDISKPUBLISHED")
+        case [_, RevisionStatus.UNFINISHED]:
+            raise ValueError("Cannot change status to UNFINISHED")
+        case _:
+            return
+
 def validate_revision_state(status, is_local, is_generated):
     match [status, is_local, is_generated]:
         case [RevisionStatus.REMOTEREQUESTABLE, False, False]:
