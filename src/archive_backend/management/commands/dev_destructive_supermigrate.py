@@ -8,6 +8,7 @@ class Command(BaseCommand):
 
     def add_arguments(self , parser):
         parser.add_argument('--nodata', action='store_true')
+        parser.add_argument('--nojobqueing', action='store_true')
 
     def handle(self, *args, **kwargs):
         migrations_files = []
@@ -43,4 +44,7 @@ class Command(BaseCommand):
         os.environ.setdefault("DJANGO_SUPERUSER_PASSWORD", "admin")
         django.core.management.call_command("createsuperuser", "--noinput", "--username", "admin", "--email", "admin@admin.admin")
         if not kwargs.get('nodata'):
-            django.core.management.call_command("generate_dummy_data")
+            if kwargs.get('nojobqueing'):
+                django.core.management.call_command("generate_dummy_data", "--nojobqueing")
+            else:
+                django.core.management.call_command("generate_dummy_data", )

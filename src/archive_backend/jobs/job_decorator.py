@@ -58,6 +58,7 @@ def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
                 #args and kwargs are in real python form, so we serialize them
                 serialized_args = [arg_transformer[0](arg) for arg, arg_transformer in zip(args, arg_transformers)]
                 serialized_kwargs = {key: kwarg_transformers[key][0](value) if key in kwarg_transformers else value for key, value in kwargs.items()}
+                serialized_kwargs['called_by_queue_handler'] = True
                 async_task(func_callsign, *serialized_args, **serialized_kwargs, task_name=func_callsign)
                 return
         return wrapper

@@ -4,12 +4,17 @@ from django.core.management.base import BaseCommand
 from django.db import IntegrityError
 from faker import Faker
 
+from archive_backend import config
 from archive_backend.models import *
 
 class Command(BaseCommand):
     help = 'Generates dummy data for testing'
 
+    def add_arguments(self , parser):
+        parser.add_argument('--nojobqueing', action='store_true')
+
     def handle(self, *args, **kwargs):
+        config.do_job_queueing = not kwargs.get('nojobqueing', True)
         fake = Faker()
         for i in range(4):
             try:

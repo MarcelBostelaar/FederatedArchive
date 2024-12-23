@@ -10,6 +10,17 @@
             "request": "launch",
             "program": "${workspaceFolder}\\src\\manage.py",
             "args": [
+                "runbackend"
+            ],
+            "django": true,
+            "justMyCode": false
+        },
+        {
+            "name": "Run server synchronously",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\manage.py",
+            "args": [
                 "runbackend",
                 "--nojobqueing"
             ],
@@ -46,7 +57,8 @@
             "request": "launch",
             "program": "${workspaceFolder}\\src\\manage.py",
             "args": [
-                "dev_destructive_supermigrate"
+                "dev_destructive_supermigrate",
+                "--nojobqueing"
             ],
             "django": true,
             "justMyCode": true
@@ -58,22 +70,11 @@
             "program": "${workspaceFolder}\\src\\manage.py",
             "args": [
                 "dev_destructive_supermigrate",
-                "--nodata"
+                "--nodata",
+                "--nojobqueing"
             ],
             "django": true,
             "justMyCode": true
-        },
-        {
-            "name": "Run server no reload",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}\\src\\manage.py",
-            "args": [
-                "runserver",
-                "--noreload",
-            ],
-            "django": true,
-            "justMyCode": false
         },
         {
             "name": "Make migration",
@@ -103,7 +104,8 @@
             "request": "launch",
             "program": "${workspaceFolder}\\src\\manage.py",
             "args": [
-                "generate_dummy_data"
+                "generate_dummy_data",
+                "--nojobqueing"
             ],
             "django": true,
             "justMyCode": true

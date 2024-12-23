@@ -1,3 +1,4 @@
+from archive_backend.jobs.job_decorator import jobify_model
 from archive_backend.models import *
 from archive_backend.api import *
 from datetime import datetime
@@ -18,7 +19,7 @@ update_order = [
 ] #Revision and ArchiveFile are not included because they are handled by signals based on server settings
 
 
-#TODO jobify
+@jobify_model("archive_backend.api.download_all.update_download_all", RemotePeer)
 def update_download_all(from_remote: RemotePeer):
     """Updates all models that are from a remote peer.
     

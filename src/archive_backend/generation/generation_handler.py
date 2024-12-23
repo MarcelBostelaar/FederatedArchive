@@ -3,6 +3,7 @@ import shutil
 from typing import List
 from django.core.files import File
 
+from archive_backend.jobs.job_decorator import jobify_model
 from archive_backend.models.file_format import FileFormat
 from .structs import ProcessingFile
 from .generation_registries import generators
@@ -20,7 +21,7 @@ def generatorLoop(ProcessingFiles: List[ProcessingFile], generatorConfig: Genera
     else:
         return generatorLoop(newFiles, generatorConfig.next_step, originalEdition, targetEdition)
 
-#TODO jobify
+@jobify_model("archive_backend.generation.generation_handler.startGeneration", Revision)
 def startGeneration(to_generate: Revision):
     if to_generate.generated_from == None:
         raise ValueError("Revision to generate must have a revision it is generated from")
