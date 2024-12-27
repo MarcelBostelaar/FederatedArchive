@@ -2,14 +2,13 @@ from datetime import datetime
 from typing import override
 from uuid import UUID
 
-from archive_backend import models
 from .registries import *
 from .viewset_data_containers import AliasViewDataContainer, RemoteViewDataContainer, RemoteViewsetFactory
 from . import serializers as s
 
 api_subpath = "api/"
 
-class RevisionViewset(RemoteViewsetFactory(models.Revision)):
+class RevisionViewset(RemoteViewsetFactory(s.RevisionSerializer)):
     @override
     def get_queryset(self):
         the_set = super().get_queryset()
@@ -46,7 +45,7 @@ class RevisionViewsContainerClass(RemoteViewDataContainer):
                                   latest_only=str(latest_only) if latest_only else "",
                                   backups_only=str(backups_only) if backups_only else "")
     
-class ArchiveFileViewset(RemoteViewsetFactory(models.ArchiveFile)):
+class ArchiveFileViewset(RemoteViewsetFactory(s.ArchiveFileSerializer)):
     @override
     def get_queryset(self):
         the_set = super().get_queryset()
@@ -68,12 +67,12 @@ class ArchiveFileViewsContainerClass(RemoteViewDataContainer):
                                   format="json" if json_format else "",
                                   related_revision=str(related_revision) if related_revision else "")
     
-class RemotePeerViewset(RemoteViewsetFactory(models.RemotePeer)):
+class RemotePeerViewset(RemoteViewsetFactory(s.RemotePeerSerializer)):
     @override
     def get_queryset(self):
         the_set = super().get_queryset()
         only_self = self.request.query_params.get('only_self', False)
-        if only_self:
+        if only_self != False:
             the_set = the_set.filter(is_this_site = True)
         return the_set
 

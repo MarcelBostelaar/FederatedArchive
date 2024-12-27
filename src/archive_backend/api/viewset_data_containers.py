@@ -126,7 +126,7 @@ def RemoteViewsetFactory(model_serializer):
         serializer_class = model_serializer
         
         def get_queryset(self):
-            the_set = super().get_queryset()
+            the_set = model_serializer.Meta.model.objects.all()
             updated_after = self.request.query_params.get('updated_after', None)
             if updated_after:
                 date = datetime.fromisoformat(updated_after)
@@ -141,7 +141,7 @@ def AliasViewFactory(model_serializer):
         pagination_class = None
 
         def get_queryset(self):
-            the_set = super().get_queryset()
+            the_set = remote_model.objects.all()
             related_to = self.request.query_params.get('related_to', None)
             if related_to is not None:
                 the_set = the_set.filter(Q(origin__id=related_to) | Q(target__id=related_to))
