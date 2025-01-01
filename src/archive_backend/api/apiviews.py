@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import override
 from uuid import UUID
+from django.db.models import Count, Q
 
 from archive_backend.models.revision import RevisionStatus
 
@@ -78,7 +79,7 @@ class RemotePeerViewset(RemoteViewsetFactory(s.RemotePeerSerializer)):
             the_set = the_set.filter(is_this_site = True)
         return the_set
 
-class RemotePeerViewsContrainerClass(RemoteViewDataContainer):
+class RemotePeerViewsContainerClass(RemoteViewDataContainer):
     """Custom views data container class to add extra url parameters for the list views"""
     def __init__(self, model_serializer, subpath="", RemoteViewset=RemotePeerViewset):
         super().__init__(model_serializer, subpath, RemoteViewset)
@@ -90,14 +91,22 @@ class RemotePeerViewsContrainerClass(RemoteViewDataContainer):
                                   format="json" if json_format else "",
                                   only_self=str(only_self) if only_self else "")
 
-RemotePeerViews = RemotePeerViewsContrainerClass(s.RemotePeerSerializer, api_subpath)
+class EditionViewset(RemoteViewsetFactory(s.EditionSerializer)):
+    @override
+    def get_queryset(self):
+        the_set = super().get_queryset().annotate( #only display editions with at least one non-unfinished (ie public) revision
+            non_unfinished_revisions_count=Count('revisions', filter=~Q(revisions__status=RevisionStatus.UNFINISHED))
+        ).exclude(non_unfinished_revisions_count=0)
+        return the_set
+
+RemotePeerViews = RemotePeerViewsContainerClass(s.RemotePeerSerializer, api_subpath)
 LanguageViews = AliasViewDataContainer(s.LanguageSerializer, api_subpath)
 FileFormatViews = AliasViewDataContainer(s.FileFormatSerializer, api_subpath)
 AuthorViews = AliasViewDataContainer(s.AuthorSerializer, api_subpath)
 AuthorDescriptionTranslationViews = RemoteViewDataContainer(s.AuthorDescriptionTranslationSerializer, api_subpath)
 AbstractDocumentViews = AliasViewDataContainer(s.AbstractDocumentSerializer, api_subpath)
 AbstractDocumentDescriptionTranslationViews = RemoteViewDataContainer(s.AbstractDocumentDescriptionTranslationSerializer, api_subpath)
-EditionViews = RemoteViewDataContainer(s.EditionSerializer, api_subpath)
+EditionViews = RemoteViewDataContainer(s.EditionSerializer, api_subpath, RemoteViewset=EditionViewset)
 RevisionViews = RevisionViewsContainerClass(s.RevisionSerializer, api_subpath)
 ArchiveFileViews = ArchiveFileViewsContainerClass(s.ArchiveFileSerializer, api_subpath)
 
