@@ -28,6 +28,20 @@
             "justMyCode": false
         },
         {
+            "name": "Run server synchronously remote",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\src\\manage.py",
+            "args": [
+                "runbackend",
+                "--nojobqueing",
+                "--port",
+                "7000"
+            ],
+            "django": true,
+            "justMyCode": false
+        },
+        {
             "name": "Run job queue",
             "type": "python",
             "request": "launch",
