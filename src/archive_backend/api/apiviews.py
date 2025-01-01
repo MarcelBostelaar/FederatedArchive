@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import override
 from uuid import UUID
 
+from archive_backend.models.revision import RevisionStatus
+
 from .registries import *
 from .viewset_data_containers import AliasViewDataContainer, RemoteViewDataContainer, RemoteViewsetFactory
 from . import serializers as s
@@ -11,7 +13,7 @@ api_subpath = "api/"
 class RevisionViewset(RemoteViewsetFactory(s.RevisionSerializer)):
     @override
     def get_queryset(self):
-        the_set = super().get_queryset()
+        the_set = super().get_queryset().exclude(status = RevisionStatus.UNFINISHED)
         rel_edition = self.request.query_params.get('related_edition', None)
         if rel_edition:
             the_set = the_set.filter(belongs_to_id = rel_edition)
