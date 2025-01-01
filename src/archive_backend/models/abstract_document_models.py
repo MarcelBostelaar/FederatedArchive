@@ -9,7 +9,7 @@ class AbstractDocument(AliasableModel("AbstractDocument")):
     """Represents an abstract document. For example, 'the first Harry Potter book', regardless of language, edition, print, etc.
     """
     original_publication_date = models.DateField(blank=True, null=True)
-    authors = models.ManyToManyField(Author)
+    authors = models.ManyToManyField(Author, blank=True)
     fallback_name = models.CharField(max_length=maxFileNameLength)
 
     def __str__(self) -> str:
