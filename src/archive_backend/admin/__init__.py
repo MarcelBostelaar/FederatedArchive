@@ -16,9 +16,8 @@ class RemotePeerAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         if not change:
             url = RemotePeerViews.get_list_url(obj.site_adress, only_self=True)
-            data = HttpUtil().get_json_from_remote(url)
-            if obj.site_name is None or obj.site_name == "":
-                obj.site_name = data["site_name"]
+            data = HttpUtil().get_json_from_remote(url)[0]
+            obj.site_name = data["site_name"]
             obj.id = data["id"]
         super().save_model(request, obj, form, change)
 

@@ -85,12 +85,13 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         for (key, _) in many_to_many:
             validated_data.pop(key)
 
-        if this_serializer_class_type.Meta.model.objects.filter(id = validated_data["id"]).exists():
-            olddata = this_serializer_class_type.Meta.model.objects.get(id = validated_data["id"])
-            validated_data = this_serializer_class_type.pre_save_deserialize_hook(olddata, validated_data)
+        #kwargs are the check to see if the item exists, defaults are the values to use to create it if it doesnt
+        #https://stackoverflow.com/a/50916413/7183662
+
+        id = validated_data.pop("id")
 
         created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(
-            **validated_data
+            id = id, defaults = validated_data
         )
 
         did_extra_change = False
