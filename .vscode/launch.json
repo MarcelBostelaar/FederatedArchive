@@ -22,10 +22,11 @@
             "program": "${workspaceFolder}\\src\\manage.py",
             "args": [
                 "runbackend",
-                "--nojobqueing"
+                "--nojobqueing",
+                "--noreload"
             ],
             "django": true,
-            "justMyCode": false
+            "justMyCode": true
         },
         {
             "name": "Run server synchronously remote",

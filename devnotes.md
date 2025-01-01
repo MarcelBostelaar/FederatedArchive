@@ -32,6 +32,7 @@ django-model-utils
 - [ ] Unit tests for downloading revisions
 - [ ] Unit tests for custom revision filters
 - [ ] Unit tests for custom file filters
+- [ ] Test if you can individually request an unfinished revision
 
 
 ## Not MVP

@@ -77,7 +77,9 @@ def get_next_status(old_status, remote_status):
     
     new_val = None
 
-    for (key, value) in RevisionTransitions[old_status]:
+    for (key, value) in RevisionTransitions[old_status].items():
+        if key == "default":
+            continue
         if remote_status in key:
             new_val = value
 
@@ -85,7 +87,7 @@ def get_next_status(old_status, remote_status):
         new_val = RevisionTransitions[old_status]["default"]
 
     if issubclass(Exception, new_val.__class__):
-        raise new_val
+        raise Exception(f" (old_status: {old_status}, remote_status: {remote_status})") from new_val
     return new_val
         
 
