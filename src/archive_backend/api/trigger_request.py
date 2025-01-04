@@ -55,7 +55,7 @@ def trigger_remote_requestable(revision: Revision):
 
 @jobify_model("archive_backend.api.trigger_request.full_download_remote_revision", Revision)
 def full_download_remote_revision(revision: Revision):
-    if revision.status != RevisionStatus.REQUESTABLE or revision.status != RevisionStatus.JOBSCHEDULED:
+    if revision.status != RevisionStatus.REQUESTABLE and revision.status != RevisionStatus.JOBSCHEDULED:
         raise Exception("Cannot download a remote revision that is not requestable or scheduled for download")
     if revision.from_remote.is_this_site:
         raise Exception("Cannot download a local revision")

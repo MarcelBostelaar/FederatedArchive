@@ -37,6 +37,7 @@ def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
             #If "called_by_queue_handler" = True, it is called by queue handler, deserializes args and kwargs and runs the original function
             #If "called_by_queue_handler" = False, it is called normally, which then schedules a task for this function with its args serialized
             if not config.do_job_queueing or force_call_synchronously:
+                print("Debug job: Calling " + func_callsign + " synchronously")
                 func(*args, **kwargs)
                 return
             if called_by_queue_handler:

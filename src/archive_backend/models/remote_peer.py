@@ -4,6 +4,8 @@ from model_utils import FieldTracker
 from archive_backend.constants import *
 from .util_abstract_models import RemoteModel
 
+from django.utils.timezone import make_aware
+
 class RemotePeer(RemoteModel):
     site_name = models.CharField(max_length=titleLength, default="Unnamed Site", blank=True)
     site_adress = models.CharField(max_length=maxFileNameLength)

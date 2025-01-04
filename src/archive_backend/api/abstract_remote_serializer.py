@@ -23,6 +23,12 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
 
     pagination_class = None
 
+    def get_unique_together_validators(self):
+        """Overriding method to disable unique together checks. 
+        Done to prevent unique together checks from triggering an exception when updating an existing item.
+        Actual unique constraints will be checked by the database itself."""
+        return []
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         if not hasattr(cls.Meta, "abstract") or not cls.Meta.abstract:
@@ -46,6 +52,8 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         serializer = this_serializer_class_type(data=data)
         self_id = data.get("id", None)
 
+
+        #Get all foreign keys referenced by this item
         all_referenced_fks = serializer.get_referenced_objects()
         self_references = []
         if recursively_update:
@@ -63,20 +71,17 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
                 if not model.objects.filter(id=referenced_id).exists():
                     SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip)
 
+        #Remove self-referencing foreign keys from the data
         for (_, _, fieldname) in self_references:
             data.pop(fieldname)
 
-        if self_id is not None:
-            data.pop("id")
+        data.pop("id")
 
         #re-make it with data stripped of self refferencing foreign keys
         serializer = this_serializer_class_type(data=data)
 
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
-
-        if self_id is not None:
-            validated_data["id"] = self_id
 
         many_to_many = []
         for (key, value) in data.items():
@@ -88,10 +93,9 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         #kwargs are the check to see if the item exists, defaults are the values to use to create it if it doesnt
         #https://stackoverflow.com/a/50916413/7183662
 
-        id = validated_data.pop("id")
 
         created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(
-            id = id, defaults = validated_data
+            id = self_id, defaults = validated_data
         )
 
         did_extra_change = False

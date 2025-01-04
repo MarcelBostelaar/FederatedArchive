@@ -4,6 +4,8 @@ from django.apps import apps
 from django.db import models
 from archive_backend.constants import *
 
+from django.utils.timezone import make_aware
+
 class RemoteModel(models.Model):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
     
@@ -28,12 +30,12 @@ class RemoteModel(models.Model):
         fields = self.synchableFields()
 
         if self._state.adding: #new instance
-            self.last_updated = datetime.datetime.now()
+            self.last_updated = make_aware(datetime.datetime.now())
         else:
             old = type(self).objects.get(id = self.id)
 
             for key in fields:
                 if getattr(old, key) != getattr(self ,key):
-                    self.last_updated = datetime.datetime.now()
+                    self.last_updated = make_aware(datetime.datetime.now())
                     break
         super(RemoteModel, self).save(*args, **kwargs)

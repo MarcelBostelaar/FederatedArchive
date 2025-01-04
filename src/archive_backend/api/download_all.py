@@ -25,7 +25,7 @@ def update_download_all(from_remote: RemotePeer):
     
     Does a full re-check and also a full download/update of all needed revisions and files if specified in the remotepeer config."""
     last_checkin = from_remote.last_checkin
-    datetime_at_job_time = datetime.now()
+    datetime_at_job_time = make_aware(datetime.now())
 
     for model in update_order:
         ViewContainer = ViewContainerRegistry.get(model)
