@@ -100,3 +100,6 @@ class HttpUtil:
             raise JobRescheduleConnectionError(10) from e
         except requests.ConnectTimeout as e:
             raise JobRescheduleConnectionTimeoutException(10) from e
+        
+    def download_file(self, url):
+        raise NotImplementedError("Not implemented")

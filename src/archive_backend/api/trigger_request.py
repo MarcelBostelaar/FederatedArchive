@@ -80,9 +80,18 @@ def full_download_remote_revision(revision: Revision):
             data = HttpUtil().get_json_from_remote(url)
             for item in data:
                 ArchiveFileSerializer.create_or_update_from_remote_data(item, revision.from_remote.site_adress)
+            check_all_files_downloaded(revision)
         case _:
             raise Exception(f"Invalid remote status {remote_status}")
-        
+
+@jobify_model("archive_backend.api.trigger_request.check_all_files_downloaded", Revision)
+def check_all_files_downloaded(revision: Revision):
+    all_files = revision.files
+    for file in all_files:
+        if file.file is None:
+            raise BaseJobRescheduleException(10, "Not all files are downloaded yet")
+    revision.status = RevisionStatus.ONDISKPUBLISHED
+    revision.save()
 
 def get_remote_revision_state(revision: Revision):
     data = HttpUtil().get_json_from_remote(RevisionViews.get_detail_url(revision.id, on_site=revision.from_remote.site_adress))

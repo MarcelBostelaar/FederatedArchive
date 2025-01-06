@@ -1,7 +1,7 @@
 import datetime
 from django.db import models
-from model_utils import FieldTracker
 from archive_backend.constants import *
+from archive_backend.utils import TransactionsafeFieldTracker
 from .util_abstract_models import RemoteModel
 
 from django.utils.timezone import make_aware
@@ -17,7 +17,7 @@ class RemotePeer(RemoteModel):
     from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
     
 
-    field_tracker = FieldTracker(fields=["mirror_files"])
+    field_tracker = TransactionsafeFieldTracker(fields=["mirror_files"])
 
     def synchableFields(self):
         return super().synchableFields() - set(["is_this_site", "last_checkin", "mirror_files"])

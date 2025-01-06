@@ -1,6 +1,6 @@
 from django.db import models
-from model_utils import FieldTracker
 from archive_backend.constants import *
+from archive_backend.utils import TransactionsafeFieldTracker
 
 class GenerationConfig(models.Model):
     name = models.CharField(max_length=100)
@@ -12,4 +12,4 @@ class GenerationConfig(models.Model):
     next_step = models.ForeignKey('GenerationConfig', on_delete=models.CASCADE, related_name='previous_steps', null=True, blank=True)
     revision_generation_function = models.CharField(max_length=100, blank=False, default="always")
 
-    field_tracker = FieldTracker(['registered_name', 'automatically_regenerate', 'config_json', 'next_step', 'revision_generation_function'])
+    field_tracker = TransactionsafeFieldTracker(['registered_name', 'automatically_regenerate', 'config_json', 'next_step', 'revision_generation_function'])

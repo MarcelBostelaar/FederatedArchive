@@ -1,11 +1,11 @@
 from django.db import IntegrityError, models
 from archive_backend.constants import *
 from archive_backend.models.generation_config import GenerationConfig
+from archive_backend.utils import TransactionsafeFieldTracker
 from .util_abstract_models import RemoteModel
 from .author_models import Author
 from .abstract_document_models import AbstractDocument
 from .language import Language
-from model_utils import FieldTracker
 
 class Edition(RemoteModel):
     """An edition is a concrete form of an abstract document. A specific printing, a specific digital edition or layout, a specific file format, with a specific language
@@ -22,7 +22,7 @@ class Edition(RemoteModel):
 
     generation_config = models.ForeignKey(GenerationConfig, on_delete=models.SET_NULL, null=True, blank=True)
     actively_generated_from = models.ForeignKey("Edition", related_name="generation_dependencies", on_delete=models.SET_NULL, null=True, blank=True)
-    field_tracker = FieldTracker(fields=["actively_generated_from", "generation_config"])
+    field_tracker = TransactionsafeFieldTracker(fields=["actively_generated_from", "generation_config"])
 
     def synchableFields(self):
         return super().synchableFields() - set(["actively_generated_from", "generation_config"])
@@ -32,6 +32,7 @@ class Edition(RemoteModel):
     
     def save(self, *args, **kwargs):
         # Check that the generation config and actively generated either both exist or both don't exist
+        # self.field_tracker.dummy_print()
         config_check(self)
         super().save(*args, **kwargs)
 

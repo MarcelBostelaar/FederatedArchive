@@ -10,17 +10,17 @@ class RemoteAdminView(admin.ModelAdmin):
             
         return list(super().get_readonly_fields(request, obj))# + ["from_remote"] #from remote is always readonly
 
-    def has_change_permission(self, request, obj=None):
-        if obj is None:
-            return True
-        if obj.from_remote is None:
-            return True
-        return obj.from_remote.is_this_site
+    # def has_change_permission(self, request, obj=None):
+    #     if obj is None:
+    #         return True
+    #     if obj.from_remote is None:
+    #         return True
+    #     return obj.from_remote.is_this_site
         
-    def has_delete_permission(self, request, obj=None):
-        return self.has_change_permission(request, obj)
+    # def has_delete_permission(self, request, obj=None):
+    #     return self.has_change_permission(request, obj)
     
-    def has_add_permission(self, request, obj=None):
-        return self.has_change_permission(request, obj)
+    # def has_add_permission(self, request, obj=None):
+    #     return self.has_change_permission(request, obj)
     
 

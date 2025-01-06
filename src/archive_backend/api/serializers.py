@@ -115,10 +115,6 @@ class RevisionSerializer(AbstractRemoteSerializer):
         exclude = ["generated_from"]
 
 class ArchiveFileSerializer(AbstractRemoteSerializer):
-    def validate_file(self, value):
-        #TODO
-        raise NotImplementedError()
-
     class Meta:
         model = ArchiveFile
         exclude = ["file"]

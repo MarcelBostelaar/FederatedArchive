@@ -1,6 +1,6 @@
 from django.db import IntegrityError, models
-from model_utils import FieldTracker
 from archive_backend.constants import *
+from archive_backend.utils.transactionsafe_fieldtracker import TransactionsafeFieldTracker
 from .util_abstract_models import RemoteModel
 from .edition import Edition
 
@@ -20,7 +20,7 @@ class Revision(RemoteModel):
     generated_from = models.ForeignKey("Revision", null=True, blank=True, on_delete=models.SET_NULL, related_name="generation_dependencies")
     is_backup = models.BooleanField(blank=True, default=False)
 
-    field_tracker = FieldTracker(["status"])
+    field_tracker = TransactionsafeFieldTracker(["status"])
 
     def __str__(self):
         return self.belongs_to.title + " - " + str(self.date) + " - [" + RevisionStatus(self.status).name + "]"
