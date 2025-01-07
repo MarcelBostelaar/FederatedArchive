@@ -13,7 +13,7 @@ def GenerationChangeEvent(config):
 
 @receiver(post_save, sender=GenerationConfig)
 @post_save_change_in_any("registered_name", "automatically_regenerate", 
-                            "config_json", "next_step")
+                            "config_json", "next_step_id")
 def GenerationConfigChanged(sender = None, instance = None, *args, **kwargs):
     GenerationChangeEvent(instance)
 

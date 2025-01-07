@@ -13,7 +13,7 @@ from .util import (post_save_change_in_any,
 
 #Changes to generation configs
 @receiver(post_save, sender=Edition)
-@post_save_change_in_any("generation_config", "actively_generated_from")
+@post_save_change_in_any("generation_config_id", "actively_generated_from_id")
 @post_save_new_values_NOTEQUALS_OR(generation_config = None, actively_generated_from = None)
 def AutogenConfigChanged(sender = None, instance = None, *args, **kwargs):
     local_requestable_generation_revision_check(instance)

@@ -54,8 +54,10 @@ def RemoteRevisionRequestable(sender = None, instance = None, *args, **kwargs):
     remote_revision_requestable_check(instance)
 
 @receiver(post_save, sender=Revision)
-def dummy(sender = None, instance = None, *args, **kwargs):
-    pass
+@post_save_change_in_values("status")
+def status_change(sender = None, instance = None, *args, **kwargs):
+    for file in instance.files.all():
+        file.fix_file()
 
 # Supporting functions
 

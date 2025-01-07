@@ -56,6 +56,12 @@ class TrackingMixin:
     def previous_state(self, identifier = None) -> dict:
         """Returns the previous state of the model instance for the given identifier. If no identifier is given, returns the state at the previous save (or init)."""
         return self._state_store.get(identifier, self._initial_state)
+    
+    def get_delta_no_trigger(self, identifier = None) -> ModelDelta:
+        """Returns the last delta for the given identifier. If no identifier is given, returns the delta between the previous save (or init) and the current state.
+        
+        Does not trigger a new tracking point."""
+        return ModelDelta(self._state_store.get(identifier, self._initial_state), self._get_current_values())
 
 
 
