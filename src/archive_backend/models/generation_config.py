@@ -1,8 +1,8 @@
 from django.db import models
 from archive_backend.constants import *
-from archive_backend.utils import TransactionsafeFieldTracker
+from .util_abstract_models.tracking_mixin import TrackingMixin
 
-class GenerationConfig(models.Model):
+class GenerationConfig(models.Model, TrackingMixin):
     name = models.CharField(max_length=100)
     registered_name = models.CharField(max_length=100)
     description = models.CharField(max_length=500, blank=True)
@@ -11,5 +11,3 @@ class GenerationConfig(models.Model):
     config_json = models.JSONField(default=dict, blank=True)
     next_step = models.ForeignKey('GenerationConfig', on_delete=models.CASCADE, related_name='previous_steps', null=True, blank=True)
     revision_generation_function = models.CharField(max_length=100, blank=False, default="always")
-
-    field_tracker = TransactionsafeFieldTracker(['registered_name', 'automatically_regenerate', 'config_json', 'next_step', 'revision_generation_function'])

@@ -53,6 +53,10 @@ def LocalRevisionRequestable(sender = None, instance = None, *args, **kwargs):
 def RemoteRevisionRequestable(sender = None, instance = None, *args, **kwargs):
     remote_revision_requestable_check(instance)
 
+@receiver(post_save, sender=Revision)
+def dummy(sender = None, instance = None, *args, **kwargs):
+    pass
+
 # Supporting functions
 
 def remote_revision_requestable_check(revision: Revision):

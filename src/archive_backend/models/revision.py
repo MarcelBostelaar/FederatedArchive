@@ -1,6 +1,5 @@
 from django.db import IntegrityError, models
 from archive_backend.constants import *
-from archive_backend.utils.transactionsafe_fieldtracker import TransactionsafeFieldTracker
 from .util_abstract_models import RemoteModel
 from .edition import Edition
 
@@ -20,8 +19,6 @@ class Revision(RemoteModel):
     generated_from = models.ForeignKey("Revision", null=True, blank=True, on_delete=models.SET_NULL, related_name="generation_dependencies")
     is_backup = models.BooleanField(blank=True, default=False)
 
-    field_tracker = TransactionsafeFieldTracker(["status"])
-
     def __str__(self):
         return self.belongs_to.title + " - " + str(self.date) + " - [" + RevisionStatus(self.status).name + "]"
 
@@ -37,12 +34,15 @@ class Revision(RemoteModel):
         if self.from_remote != self.belongs_to.from_remote:
             raise IntegrityError("Cannot create revisions with a different origin: ", self.from_remote, self.belongs_to.from_remote)
 
-        validate_status_transition(self.field_tracker.previous("status"), self.status)
+        validate_status_transition(self.previous("status"), self.status)
 
         # Check if the revision status is valid
         validate_revision_state(self.status, is_local, is_generated)
 
-        return super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
+        i = 10
+        # return super().save(*args, **kwargs)
+    
         
 def validate_status_transition(old_status, new_status):
     if old_status == new_status:

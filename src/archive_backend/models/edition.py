@@ -1,7 +1,6 @@
 from django.db import IntegrityError, models
 from archive_backend.constants import *
 from archive_backend.models.generation_config import GenerationConfig
-from archive_backend.utils import TransactionsafeFieldTracker
 from .util_abstract_models import RemoteModel
 from .author_models import Author
 from .abstract_document_models import AbstractDocument
@@ -22,7 +21,6 @@ class Edition(RemoteModel):
 
     generation_config = models.ForeignKey(GenerationConfig, on_delete=models.SET_NULL, null=True, blank=True)
     actively_generated_from = models.ForeignKey("Edition", related_name="generation_dependencies", on_delete=models.SET_NULL, null=True, blank=True)
-    field_tracker = TransactionsafeFieldTracker(fields=["actively_generated_from", "generation_config"])
 
     def synchableFields(self):
         return super().synchableFields() - set(["actively_generated_from", "generation_config"])

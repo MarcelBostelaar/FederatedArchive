@@ -12,11 +12,12 @@ def post_save_old_values(**signalkwargs):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             if created:
                 return #New items cant have old values
-            old_values = instance.field_tracker.get_previous_state_since_last_call_by(func)
+            delta = instance.trigger_tracking_for_id(func)
+            old_values = delta.old_state
             for key, value in signalkwargs.items():
                 if not hasattr(instance, key):
                     raise Exception("Attribute " + key + " does not exist")
-                oldValue = old_values.get(key, None)
+                oldValue = old_values.get(key)
                 if value != oldValue:
                     return
             return func(sender, instance, created, *args, **kwargs)
@@ -66,11 +67,12 @@ def post_save_change_in_values(*valuesMustHaveChanged):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             if created:
                 return #New items cant have old values
-            changes = instance.field_tracker.changed_since_last_call_by(func)
-            if len(changes) == 0:
+            delta = instance.trigger_tracking_for_id(func)
+            changed_fields = delta.get_changed_fields()
+            if len(changed_fields) == 0:
                 return #No changes
             for key in valuesMustHaveChanged:
-                if key not in changes.keys():
+                if key not in changed_fields:
                     return #Key not changed
             return func(sender, instance, created, *args, **kwargs)
         return internal_filter
@@ -86,11 +88,12 @@ def post_save_change_in_any(*valuesMustHaveChanged):
         def internal_filter(sender = None, instance = None, created = None, *args, **kwargs):
             if created:
                 return
-            changes = instance.field_tracker.changed_since_last_call_by(func)
-            if len(changes) == 0:
+            delta = instance.trigger_tracking_for_id(func)
+            changed_fields = delta.get_changed_fields()
+            if len(changed_fields) == 0:
                 return #No changes
             for key in valuesMustHaveChanged:
-                if key in changes.keys():
+                if key in changed_fields:
                     return func(sender, instance, created, *args, **kwargs)
             return
         return internal_filter

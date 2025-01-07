@@ -6,7 +6,9 @@ from archive_backend.constants import *
 
 from django.utils.timezone import make_aware
 
-class RemoteModel(models.Model):
+from .tracking_mixin import TrackingMixin
+
+class RemoteModel(models.Model, TrackingMixin):
     """Contains fields and functionality to turn a model remote mirrorable. By using a UUID any two databases of this type can be merged without ID conflicts."""
     
     def getLocalSite():
