@@ -22,9 +22,13 @@ class TrackingMixin:
     """Tracks all fields of a django model it is added to during its lifecycle in the django codebase.
     Must be used as a mixin with a django model class."""
 
+    def get_tracked_fields(self):
+        """Override to limit the fields to track"""
+        return self._meta.fields
+
     def _get_current_values(self):
         """Returns the current values of all fields in the instance as a storable dict."""
-        return {field.attname: getattr(self, field.attname) for field in self._meta.fields}
+        return {field.attname: getattr(self, field.attname) for field in self.get_tracked_fields()}
 
     def trigger_tracking_for_id(self, identifier) -> ModelDelta:
         """Returns the difference between the previous and current state and sets the previous state to the current state for the next track cycle.

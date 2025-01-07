@@ -25,7 +25,7 @@ class ArchiveFile(RemoteModel):
         return self
 
     def save(self, *args, **kwargs):
-        if self.id is None:
+        if not ArchiveFile.objects.filter(id = self.id).exists():
             #New item
             if self.belongs_to.status == RevisionStatus.ONDISKPUBLISHED:
                 raise IntegrityError("Cannot create a file for a published revision")
