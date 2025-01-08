@@ -28,7 +28,7 @@ django-model-utils
 - [x] Do not expose unfinished revisions (or their files) in api
 - [x] Automatically add scheduled rechecking of remotes if it doesnt exist in the job queue
 - [x] Test if you can individually request an unfinished revision
-- [ ] Remove transition metadata code
+- [x] Remove transition metadata code
 - [ ] Prevent adding 2 is this sites
 
 

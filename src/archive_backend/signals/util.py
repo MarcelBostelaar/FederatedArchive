@@ -1,6 +1,3 @@
-from typing import List, Set
-from archive_backend.utils import get_transaction_metadata
-
 
 def post_save_old_values(**signalkwargs):
     """Utility function to stop firing a post_save signal if the model instance does not meet the criteria.
