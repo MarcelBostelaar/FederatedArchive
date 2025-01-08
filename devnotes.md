@@ -1,12 +1,12 @@
 # Dependencies
-pydantic
+?pydantic
 djangorestframework
 markdown
 django-filter
 faker
 django-q2
 django-cleanup
-django-model-utils
+?django-model-utils
 (incomplete)
 
 # TODO

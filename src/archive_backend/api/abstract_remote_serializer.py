@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Tuple
 import uuid
 from django.forms import ValidationError
@@ -49,6 +50,11 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         Leave empty or false to only download if there isnt already a copy of it on this server. 
         Provides single-level protection against circular references (only against direct foreign key to self).
         Ensure no circular foreign key references are made in the serializers (or models)."""
+        try:
+            remote_last_update = datetime.fromisoformat(data.get("last_updated"))
+        except Exception as e:
+            i = 10
+            raise e
         serializer = this_serializer_class_type(data=data)
         self_id = data.get("id", None)
 
@@ -92,6 +98,11 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
 
         #kwargs are the check to see if the item exists, defaults are the values to use to create it if it doesnt
         #https://stackoverflow.com/a/50916413/7183662
+
+        this_item = this_serializer_class_type.Meta.model.objects.filter(id=self_id)
+        if this_item.exists():
+            if remote_last_update <= this_item.first().last_updated:
+                return this_item.first() #Item is already up to date
 
 
         created_item, created = this_serializer_class_type.Meta.model.objects.update_or_create(

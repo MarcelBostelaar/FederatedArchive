@@ -28,7 +28,6 @@ class RemoteModel(models.Model, TrackingMixin):
         return set([x.name for x in self.__class__._meta.fields]) - set(["last_updated"])
 
     def save(self, *args, **kwargs):
-        """Skips syncing the last_updated field if the item is new and sets it to the current time if it has been updated."""
         fields = self.synchableFields()
 
         if self._state.adding: #new instance
