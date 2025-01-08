@@ -1,3 +1,4 @@
+import shutil
 import django
 from django.core.management.base import BaseCommand
 
@@ -37,6 +38,9 @@ class Command(BaseCommand):
             
         if os.path.exists('./src/db.sqlite3'):
             os.remove('./src/db.sqlite3')
+        
+        if os.path.exists("./archive_files"):
+            shutil.rmtree("./archive_files")
 
         django.core.management.call_command("makemigrations")
         django.core.management.call_command("migrate")

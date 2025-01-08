@@ -8,7 +8,7 @@ from archive_backend.models.revision import Revision, RevisionStatus
 from archive_backend.utils.small import HttpUtil
 from .apiviews import api_subpath, ArchiveFileViews, RevisionViews
 
-trigger_request_base = api_subpath + "/revision/trigger/"
+trigger_request_base = api_subpath + "revision/trigger/"
 def getTriggerRequestUrl(revision: Revision):
     return trigger_request_base + str(revision.id)
 

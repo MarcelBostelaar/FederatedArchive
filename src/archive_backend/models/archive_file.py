@@ -1,3 +1,4 @@
+from pathlib import Path
 from django.db import IntegrityError, models
 from archive_backend.constants import *
 from archive_backend.models.revision import Revision, RevisionStatus
@@ -50,6 +51,7 @@ class ArchiveFile(RemoteModel):
         new_file_uri = archive_file_path(self)
         if old_file_uri == new_file_uri:
             return
+        Path(new_file_uri).parents[0].mkdir(parents=True, exist_ok=True)
         file_move_safe(old_file_uri, new_file_uri, allow_overwrite=True)
         self.file.name = new_file_uri
         self.save()
