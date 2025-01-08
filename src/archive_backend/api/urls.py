@@ -43,6 +43,9 @@ index = lambda _: HttpResponse(indexHTML)
 
 self_remote = lambda _: redirect(RemotePeerViews.get_detail_url(RemotePeer.getLocalSite().id), permanent=True)
 
+def get_file_by_id_url(file: ArchiveFile) -> str:
+    return f"{file.from_remote.site_adress}/{api_subpath}file/{file.id}"
+
 def file_by_id(request, file_id):
     """Redirects to the file url of the given file id"""
     try:

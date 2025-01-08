@@ -86,7 +86,7 @@ def full_download_remote_revision(revision: Revision):
 
 @jobify_model("archive_backend.api.trigger_request.check_all_files_downloaded", Revision)
 def check_all_files_downloaded(revision: Revision):
-    all_files = revision.files
+    all_files = revision.files.all()
     for file in all_files:
         if file.file is None:
             raise BaseJobRescheduleException(10, "Not all files are downloaded yet")

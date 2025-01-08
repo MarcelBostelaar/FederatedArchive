@@ -101,5 +101,15 @@ class HttpUtil:
         except requests.ConnectTimeout as e:
             raise JobRescheduleConnectionTimeoutException(10) from e
         
-    def download_file(self, url):
-        raise NotImplementedError("Not implemented")
+    def get_file_stream(self, url):
+        """Gets a file stream from a url"""
+        if config.unit_testing:
+            raise Exception("Tried to run real http command in unit test")
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            return response.raw
+        except requests.ConnectionError as e:
+            raise JobRescheduleConnectionError(10) from e
+        except requests.ConnectTimeout as e:
+            raise JobRescheduleConnectionTimeoutException(10) from e
