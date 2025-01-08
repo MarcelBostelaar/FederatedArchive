@@ -22,7 +22,6 @@ class Command(BaseCommand):
         filters = [
             "remote_peer_initial",
             "remote_peer_self_creation",
-            "lock_own_remote_peer",
             "__init__",
             "__pycache__"
         ]
