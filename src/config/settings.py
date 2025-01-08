@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'archive_backend.apps.ArchiveBackendConfig',
+    'archive_frontend.apps.ArchiveFrontendConfig',
     # 'action_suggestions.apps.ActionSuggestionsConfig',
     'example_generator_plugin.apps.ExampleGeneratorPluginConfig',
     'rest_framework',

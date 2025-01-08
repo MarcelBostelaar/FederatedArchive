@@ -23,7 +23,6 @@ django-cleanup
 - [x] Implement download jobs
   - [x] Check that scheduled remote jobs are finished when syncing
 - [x] Add special endpoint for adding a remote (you need its id)
-- [ ] Add code to automatically try http or https in a url request in the api
 - [x] Implement urllib.parse (function quote) to the url args
 - [x] Do not expose unfinished revisions (or their files) in api
 - [x] Automatically add scheduled rechecking of remotes if it doesnt exist in the job queue
@@ -31,6 +30,13 @@ django-cleanup
 - [x] Remove transition metadata code
 - [x] Prevent adding 2 is this sites
 - [x] Simplify jobify by getting callsign automatically
+
+## MVP frontend
+- [ ] Overview by author (aliased and additional author)
+- [ ] Overview by abstract document (with indicator of status)
+- [ ] Show other editions, by language, on document page
+- [ ] Overview of edition files
+- [ ] Button to request a requestable
 
 
 ## Not MVP
