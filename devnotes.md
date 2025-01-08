@@ -30,7 +30,7 @@ django-model-utils
 - [x] Test if you can individually request an unfinished revision
 - [x] Remove transition metadata code
 - [x] Prevent adding 2 is this sites
-- [ ] Simplify jobify by getting callsign automatically
+- [x] Simplify jobify by getting callsign automatically
 
 
 ## Not MVP
