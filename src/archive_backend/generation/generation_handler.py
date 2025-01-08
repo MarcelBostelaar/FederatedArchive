@@ -21,7 +21,7 @@ def generatorLoop(ProcessingFiles: List[ProcessingFile], generatorConfig: Genera
     else:
         return generatorLoop(newFiles, generatorConfig.next_step, originalEdition, targetEdition)
 
-@jobify_model("archive_backend.generation.generation_handler.startGeneration", Revision)
+@jobify_model(Revision)
 def startGeneration(to_generate: Revision):
     if to_generate.generated_from == None:
         raise ValueError("Revision to generate must have a revision it is generated from")

@@ -21,7 +21,7 @@ django-model-utils
 - [x] Implement 1 dummy generation functionality
 - [x] Implement api
 - [x] Implement download jobs
-  - [] Check that scheduled remote jobs are finished when syncing
+  - [x] Check that scheduled remote jobs are finished when syncing
 - [x] Add special endpoint for adding a remote (you need its id)
 - [ ] Add code to automatically try http or https in a url request in the api
 - [x] Implement urllib.parse (function quote) to the url args
@@ -29,7 +29,8 @@ django-model-utils
 - [x] Automatically add scheduled rechecking of remotes if it doesnt exist in the job queue
 - [x] Test if you can individually request an unfinished revision
 - [x] Remove transition metadata code
-- [ ] Prevent adding 2 is this sites
+- [x] Prevent adding 2 is this sites
+- [ ] Simplify jobify by getting callsign automatically
 
 
 ## Not MVP

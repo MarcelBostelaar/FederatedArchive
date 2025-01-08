@@ -39,7 +39,7 @@ def NewRemoteEdition(sender = None, instance = None, *args, **kwargs):
 
 #Supporting functions
 
-@jobify_model("archive_backend.signals.edition_signals.create_requestable", Edition)
+@jobify_model(Edition)
 def create_requestables(edition: Edition):
     create_requestable_revisions_for_remote_backups(edition)
     create_requestable_revision_for_remote_latest(edition)
@@ -49,7 +49,7 @@ def local_requestable_generation_revision_check(edition: Edition):
     fun = revision_generation_functions.get(edition.generation_config.revision_generation_function)
     fun(edition)
 
-@jobify_model("archive_backend.signals.edition_signals.create_requestable_revisions_for_remote_backups", Edition)  
+@jobify_model(Edition)  
 def create_requestable_revisions_for_remote_backups(edition: Edition):
     url = RevisionViews.get_list_url(
         on_site = edition.from_remote.site_adress, 
@@ -59,7 +59,7 @@ def create_requestable_revisions_for_remote_backups(edition: Edition):
     for i in data:
         RevisionSerializer.create_or_update_from_remote_data(i, edition.from_remote.site_adress)
 
-@jobify_model("archive_backend.signals.edition_signals.create_requestable_revision_for_remote_latest", Edition)
+@jobify_model(Edition)
 def create_requestable_revision_for_remote_latest(edition: Edition):
     url = RevisionViews.get_list_url(
         on_site = edition.from_remote.site_adress, 

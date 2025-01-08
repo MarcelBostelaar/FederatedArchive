@@ -15,7 +15,7 @@ def get_remote_model_serializer_pair(model: Type[RemoteModel]):
     deserializer = lambda val: model.objects.get(id = val)
     return (serializer, deserializer)
 
-def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
+def jobify(*arg_transformers, **kwarg_transformers):
     """Transforms a function call into a queued job call.
 
     If global config.do_job_queueing is set to False (use --nojobqueing on runbackend command), or decorated function is called with force_call_synchronously=True, the function will work as if decorator does not exist (no use of djang-q, no catching of BaseJobRescheduleExceptions).
@@ -28,16 +28,15 @@ def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
 
     Function can be called as if unmodified.
     
-    :param func_callsign: The dotted callsign of the function to be called.
     :param arg_transformers: A list of tuples of the form (serializer, deserializer) for each argument, such that they can be saved as primitives in the db.
     :param kwarg_transformers: A dictionary of the form {kwarg_name: (serializer, deserializer)} for each kwarg, such that they can be saved as primitives in the db."""
     def decorator(func):
+        func_callsign = func.__module__ + "." + func.__name__
         def wrapper(*args, called_by_queue_handler=False, force_call_synchronously = False, **kwargs):
             #If queueing is disabled, or force_call_synchronously is True, execute directly with no catching and no queueing
             #If "called_by_queue_handler" = True, it is called by queue handler, deserializes args and kwargs and runs the original function
             #If "called_by_queue_handler" = False, it is called normally, which then schedules a task for this function with its args serialized
             if not config.do_job_queueing or force_call_synchronously:
-                print("Debug job: Calling " + func_callsign + " synchronously")
                 func(*args, **kwargs)
                 return
             if called_by_queue_handler:
@@ -66,7 +65,7 @@ def jobify(func_callsign, *arg_transformers, **kwarg_transformers):
     return decorator
 
 
-def jobify_model(func_callsign: str, model: Type[RemoteModel]):
+def jobify_model(model: Type[RemoteModel]):
     """Transforms a function call into a queued job call, with the decorated functions first and only argument being a remote model instance.
 
     If global config.do_job_queueing is set to False (use --nojobqueing on runbackend command), function will work as if decorator does not exist (and will not catch BaseJobRescheduleExceptions).
@@ -75,9 +74,8 @@ def jobify_model(func_callsign: str, model: Type[RemoteModel]):
 
     Function can be called as if unmodified.
     
-    :param func_callsign: The dotted callsign of the function to be called.
     :param model: The model class to be used for serialization/deserialization.
     """
     def decorator(func):
-        return jobify(func_callsign, get_remote_model_serializer_pair(model))(func)
+        return jobify(get_remote_model_serializer_pair(model))(func)
     return decorator

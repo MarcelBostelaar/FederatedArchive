@@ -19,7 +19,7 @@ update_order = [
 ] #Revision and ArchiveFile are not included because they are handled by signals based on server settings
 
 
-@jobify_model("archive_backend.api.download_all.update_download_all", RemotePeer)
+@jobify_model(RemotePeer)
 def update_download_all(from_remote: RemotePeer):
     """Updates all models that are from a remote peer.
     

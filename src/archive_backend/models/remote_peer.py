@@ -1,5 +1,5 @@
 import datetime
-from django.db import models
+from django.db import IntegrityError, models
 from archive_backend.constants import *
 from .util_abstract_models import RemoteModel
 
@@ -14,6 +14,20 @@ class RemotePeer(RemoteModel):
 
     #Override from_remote because it must be able to self_reference
     from_remote = models.ForeignKey("RemotePeer", blank=True, null=True, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs):
+        if self.is_this_site:
+            count = RemotePeer.objects.filter(is_this_site=True).count()
+            if count == 0:
+                pass
+            elif count > 1:
+                raise IntegrityError("There should only be one site that is this site")
+            else:
+                if self.pk == RemotePeer.objects.filter(is_this_site=True).first().pk:
+                    pass
+                else:
+                    raise IntegrityError("Cannot create two remote peers labled as this site")
+        return super().save(*args, **kwargs)
 
     def synchableFields(self):
         return super().synchableFields() - set(["is_this_site", "last_checkin", "mirror_files"])

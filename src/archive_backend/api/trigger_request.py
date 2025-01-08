@@ -41,7 +41,7 @@ def trigger_requestable(revision: Revision):
                 case [_, False]:
                     raise Exception("Remote requestable revision has a generation source")
 
-@jobify_model("archive_backend.api.trigger_request.trigger_remote_requestable", Revision)
+@jobify_model(Revision)
 def trigger_remote_requestable(revision: Revision):
     response = HttpUtil().ping_url(getTriggerRequestUrl(revision))
     if response.code >= 500:
@@ -53,7 +53,7 @@ def trigger_remote_requestable(revision: Revision):
     #update own data from remote to have status be as up to date as possible
     RevisionSerializer.download_or_update_from_remote_site(revision.id, revision.from_remote.site_adress)
 
-@jobify_model("archive_backend.api.trigger_request.full_download_remote_revision", Revision)
+@jobify_model(Revision)
 def full_download_remote_revision(revision: Revision):
     if revision.status != RevisionStatus.REQUESTABLE and revision.status != RevisionStatus.JOBSCHEDULED:
         raise Exception("Cannot download a remote revision that is not requestable or scheduled for download")
@@ -84,7 +84,7 @@ def full_download_remote_revision(revision: Revision):
         case _:
             raise Exception(f"Invalid remote status {remote_status}")
 
-@jobify_model("archive_backend.api.trigger_request.check_all_files_downloaded", Revision)
+@jobify_model(Revision)
 def check_all_files_downloaded(revision: Revision):
     all_files = revision.files.all()
     for file in all_files:
