@@ -51,10 +51,11 @@ class RevisionViewsContainerClass(RemoteViewDataContainer):
 class ArchiveFileViewset(RemoteViewsetFactory(s.ArchiveFileSerializer)):
     @override
     def get_queryset(self):
-        the_set = super().get_queryset()
+        the_set = super().get_queryset().exclude(belongs_to__status = RevisionStatus.UNFINISHED)
         rel_revision = self.request.query_params.get('related_revision', None)
         if rel_revision:
             the_set = the_set.filter(belongs_to_id = rel_revision)
+        test = list(the_set)
         return the_set
     
     

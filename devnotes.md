@@ -16,23 +16,20 @@ django-model-utils
 - [x] Add original filename back to archive file item
 - [x] Fix file format logic in generator runner
 - [x] Add status remoterequestable
-- [ ] Test all signals
+- [x] Test all signals
 - [x] revise generation config somehow, since it now only does one file format to the next
 - [x] Implement 1 dummy generation functionality
 - [x] Implement api
-- [ ] Implement download jobs
+- [x] Implement download jobs
   - [] Check that scheduled remote jobs are finished when syncing
 - [x] Add special endpoint for adding a remote (you need its id)
 - [ ] Add code to automatically try http or https in a url request in the api
 - [x] Implement urllib.parse (function quote) to the url args
-- [ ] Do not expose unfinished revisions (or their files) in api
-- [ ] Automatically add scheduled rechecking of remotes if it doesnt exist in the job queue
-- [ ] Unit tests for automatic synching of basic items
-- [ ] Unit tests for downloading files
-- [ ] Unit tests for downloading revisions
-- [ ] Unit tests for custom revision filters
-- [ ] Unit tests for custom file filters
-- [ ] Test if you can individually request an unfinished revision
+- [x] Do not expose unfinished revisions (or their files) in api
+- [x] Automatically add scheduled rechecking of remotes if it doesnt exist in the job queue
+- [x] Test if you can individually request an unfinished revision
+- [ ] Remove transition metadata code
+- [ ] Prevent adding 2 is this sites
 
 
 ## Not MVP

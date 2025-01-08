@@ -98,6 +98,7 @@ Q_CLUSTER = {
     'bulk': 10,
     'orm': 'default',
     "max_attempts": 5,
+    'catch_up': False,
     'ALT_CLUSTERS': {
         'long': {
             'timeout': 3000,

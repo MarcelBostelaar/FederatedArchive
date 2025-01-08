@@ -4,7 +4,7 @@ import uuid
 from django.db.models import Q
 from django.db import models
 from archive_backend.constants import *
-from archive_backend.utils.small import batched_bulk_create_boolresult, flatten
+from archive_backend.utils.small import flatten
 from .remote_model import RemoteModel
 from .abstract_alias_through import _AbstractAliasThrough
 

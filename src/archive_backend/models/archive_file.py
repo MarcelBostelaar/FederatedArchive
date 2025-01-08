@@ -37,8 +37,7 @@ class ArchiveFile(RemoteModel):
         if not ArchiveFile.objects.filter(id = self.id).exists():
             #New item
             if self.belongs_to.status == RevisionStatus.ONDISKPUBLISHED:
-                pass
-                # raise IntegrityError("Cannot create a file for a published revision") #TODO uncomment
+                raise IntegrityError("Cannot create a file for a published revision") #TODO uncomment
 
         if self.from_remote != self.belongs_to.from_remote:
             raise IntegrityError("Cannot create a file with a different origin: ", self.from_remote, self.belongs_to.from_remote)

@@ -22,8 +22,7 @@
             "program": "${workspaceFolder}\\src\\manage.py",
             "args": [
                 "runbackend",
-                "--nojobqueing",
-                "--noreload"
+                "--nojobqueing"
             ],
             "django": true,
             "justMyCode": true

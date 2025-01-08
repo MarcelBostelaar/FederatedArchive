@@ -9,7 +9,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         super(Command, self).add_arguments(parser)
         parser.add_argument('--nojobqueing', action='store_true')
-        parser.add_argument('--noreload', action='store_true')
+        parser.add_argument('--noreload', action='store_false')
         parser.add_argument('--port', type=str, default='8000')
 
     def handle(self, *args, **kwargs):
