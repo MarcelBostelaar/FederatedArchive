@@ -1,6 +1,6 @@
-from typing import override
 from .abstract_remote_serializer import AbstractRemoteSerializer
 from archive_backend.models import *
+from rest_framework import serializers
 
 class RemotePeerSerializer(AbstractRemoteSerializer):
     class Meta:
@@ -114,7 +114,19 @@ class RevisionSerializer(AbstractRemoteSerializer):
         model = Revision
         exclude = ["generated_from"]
 
+class PersistentIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PersistentFileID
+        fields = "__all__"
+
 class ArchiveFileSerializer(AbstractRemoteSerializer):
+    persistent_file_ids = PersistentIdSerializer(many=True)
+
+    def validate_persistent_file_ids(self, value_on_remote):
+        if len(value_on_remote) == 0:
+            raise IntegrityError(f"Remote archive file item {self.initial_data} has no persistent file id!")
+        return value_on_remote
+
     class Meta:
         model = ArchiveFile
         exclude = ["file"]

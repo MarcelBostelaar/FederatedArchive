@@ -38,6 +38,9 @@ django-cleanup
 - [ ] Overview of edition files
 - [ ] Button to request a requestable
 
+## Additional features backend
+- [ ] Persistent ID for files that link up different versions of a file
+
 
 ## Not MVP
 - [ ] Diff view for text files

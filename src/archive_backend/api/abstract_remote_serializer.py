@@ -50,11 +50,7 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         Leave empty or false to only download if there isnt already a copy of it on this server. 
         Provides single-level protection against circular references (only against direct foreign key to self).
         Ensure no circular foreign key references are made in the serializers (or models)."""
-        try:
-            remote_last_update = datetime.fromisoformat(data.get("last_updated"))
-        except Exception as e:
-            i = 10
-            raise e
+        remote_last_update = datetime.fromisoformat(data.get("last_updated"))
         serializer = this_serializer_class_type(data=data)
         self_id = data.get("id", None)
 
