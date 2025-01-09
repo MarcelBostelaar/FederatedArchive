@@ -1,6 +1,7 @@
 from .abstract_remote_serializer import AbstractRemoteSerializer
 from archive_backend.models import *
 from rest_framework import serializers
+from django.core.exceptions import ObjectDoesNotExist
 
 class RemotePeerSerializer(AbstractRemoteSerializer):
     class Meta:
@@ -115,17 +116,19 @@ class RevisionSerializer(AbstractRemoteSerializer):
         exclude = ["generated_from"]
 
 class PersistentIdSerializer(serializers.ModelSerializer):
+    # def to_internal_value(self, data):
+    #     id = data["id"]
+    #     try:
+    #         return PersistentFileID.objects.get(id)
+    #     except ObjectDoesNotExist:
+    #         return PersistentFileID.objects.create(id = id)
+        
     class Meta:
         model = PersistentFileID
         fields = "__all__"
 
 class ArchiveFileSerializer(AbstractRemoteSerializer):
-    persistent_file_ids = PersistentIdSerializer(many=True)
-
-    def validate_persistent_file_ids(self, value_on_remote):
-        if len(value_on_remote) == 0:
-            raise IntegrityError(f"Remote archive file item {self.initial_data} has no persistent file id!")
-        return value_on_remote
+    # persistent_file_ids = PersistentIdSerializer(many=True)
 
     class Meta:
         model = ArchiveFile
