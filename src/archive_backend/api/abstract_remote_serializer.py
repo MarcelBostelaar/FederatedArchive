@@ -60,10 +60,10 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
         self_references = []
         if recursively_update:
             for (model, referenced_id, fieldname) in all_referenced_fks:
-                if referenced_id == self_id:
+                if str(referenced_id) == self_id:
                     self_references.append((model, referenced_id, fieldname))
                     continue #Self-reference
-                SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip, recursively_update = True)
+                this_serializer_class_type.handle_fk(model, referenced_id, from_ip, recursively_update=recursively_update)
         
         else:
             for (model, referenced_id, fieldname) in all_referenced_fks:
@@ -71,7 +71,7 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
                     self_references.append((model, referenced_id, fieldname))
                     continue #Self reference
                 if not model.objects.filter(id=referenced_id).exists():
-                    SerializerRegistry.get(model).download_or_update_from_remote_site(referenced_id, from_ip)
+                    this_serializer_class_type.handle_fk(model, referenced_id, from_ip, recursively_update=recursively_update)
 
         #Remove self-referencing foreign keys from the data
         for (_, _, fieldname) in self_references:
@@ -187,6 +187,15 @@ class AbstractRemoteSerializer(serializers.ModelSerializer):
                     related_object_id = data.get(field.name)
                     referenced_foreign_keys = referenced_foreign_keys + AbstractRemoteSerializer._try_get_single_id(field.related_model, related_object_id, field.name)
         return referenced_foreign_keys
+
+    @classmethod
+    def handle_fk(cls, model, fk, from_ip, recursively_update=False):
+        """Handles updating/creating of fks that are references so that the object can be fully downloaded including dependencies.
+
+        Handles models with an associated Abstract Remote Serializer automatically.
+        
+        Override to add/change handling of refferenced foreign keys, such as models without an abstract remote serializer associated with them."""
+        SerializerRegistry.get(model).download_or_update_from_remote_site(fk, from_ip, recursively_update = recursively_update)
 
     class Meta:
         abstract = True

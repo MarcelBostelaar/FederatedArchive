@@ -39,7 +39,8 @@ django-cleanup
 - [ ] Button to request a requestable
 
 ## Additional features backend
-- [ ] Persistent ID for files that link up different versions of a file
+- [x] Persistent ID for files that link up different versions of a file
+  - [ ] Change example generator to correctly add the persistent ids to the correct files.
 
 
 ## Not MVP

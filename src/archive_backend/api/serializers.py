@@ -115,20 +115,17 @@ class RevisionSerializer(AbstractRemoteSerializer):
         model = Revision
         exclude = ["generated_from"]
 
-class PersistentIdSerializer(serializers.ModelSerializer):
-    # def to_internal_value(self, data):
-    #     id = data["id"]
-    #     try:
-    #         return PersistentFileID.objects.get(id)
-    #     except ObjectDoesNotExist:
-    #         return PersistentFileID.objects.create(id = id)
-        
-    class Meta:
-        model = PersistentFileID
-        fields = "__all__"
 
 class ArchiveFileSerializer(AbstractRemoteSerializer):
-    # persistent_file_ids = PersistentIdSerializer(many=True)
+    @classmethod
+    def handle_fk(cls, model, fk, from_ip, recursively_update=False):
+        if model == PersistentFileID:
+            try:
+                return PersistentFileID.objects.get(id=fk)
+            except PersistentFileID.DoesNotExist as e:
+                return PersistentFileID.objects.create(id = fk)
+        else:
+            return super().handle_fk(model, fk, from_ip, recursively_update)
 
     class Meta:
         model = ArchiveFile
