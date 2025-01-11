@@ -42,7 +42,7 @@ def create_periodicals(request):
 
 urlpatterns = [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path("", views.index, name="index"),
+    path("help", views.index, name="index"),
     path("", include('archive_backend.api')),
     path("test", testRoute),
     path("archive_files/<str:access>/<uuid:revision>/<str:filename>", basic_file_server),

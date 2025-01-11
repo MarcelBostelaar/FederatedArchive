@@ -1,13 +1,19 @@
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.shortcuts import render
+from django.core.serializers import serialize
 
-from .forms import TestForm
+from archive_backend.models import *
 
 # Create your views here.
 
 def index(request):
-    return HttpResponse("""<style>*{font-size:70px;}</style>Hello world.<br>
-                        <a href='admin'>Admin</a><br>
-                        <a href='api'>API</a><br>
-                        <a href='test'>Test</a><br>
-                        <a href='periodicals'>Create default periodicals</a><br>""")
+    context = {}
+    context["authorcount"] = Author.objects.values('alias_identifier').distinct().count()
+    context["documentcount"] = AbstractDocument.objects.values('alias_identifier').distinct().count()
+    return render(request, "index.html", context)
+
+def authors(request):
+    context = {}
+    test = list(Author.objects.all())
+    context["authors"] = Author.objects.all()#.prefetch_related("descriptions__language"))
+    return render(request, "authors.html", context)

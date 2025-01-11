@@ -1,0 +1,10 @@
+<div style="border-width: 2px; border-style: solid;">
+    <h3>{{ author.fallback_name }}</h3>
+    <p>Born on {{author.birthday}}</p>
+    <h4>Also known as</h4>
+    <ul>
+        {% for description in author.descriptions.all %}
+        <li>{{ description.language.iso_639_code }} - {{ description.translation }}</li>
+        {% endfor %}
+    </ul>
+</div>
