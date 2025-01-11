@@ -156,3 +156,9 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Path to the function that generates where the files should be stored. 
+# Expects a function that takes an instance of the model as an argument and returns a string (with a valid file name, so use get_valid_filename).
+# Can be used to store files in a different way, for example by putting all public files in a single folder served by a CDN or nginx.
+
+# FILEPATH_GENERATOR = 'archive_frontend.filepath_generator.frontend_filepath_generator'

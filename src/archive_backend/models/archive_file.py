@@ -10,6 +10,8 @@ from .util_abstract_models import RemoteModel
 from django.core.files import File
 from django.core.files.move import file_move_safe
 from django.utils.text import get_valid_filename
+from django.conf import settings
+from django.utils.module_loading import import_string
 
 class PersistentFileID(models.Model):
     """An id that links all variations and revisions of a file together, accross revisions and editions, merges or splits."""
@@ -29,15 +31,17 @@ class PersistentFileID(models.Model):
 
 #Archive file logic
 
-def archive_file_path(instance):
-    if instance.belongs_to.status == RevisionStatus.ONDISKPUBLISHED:
-        status = "public/"
-    else:
-        status = "private/"
-    return 'archive_files/' + status + str(instance.belongs_to.pk) + '/' + get_valid_filename(instance.file_name + "." + instance.file_format.format)
+def default_file_path_generator(instance):
+    return 'archive_files/' + get_valid_filename(f"{str(instance.id)} {instance.file_name}.{instance.file_format.format}")
+
+fpg_callsign = getattr(settings, 'FILEPATH_GENERATOR', None)
+if fpg_callsign is None:
+    file_path_generator = default_file_path_generator
+else:
+    file_path_generator = import_string(fpg_callsign)
 
 def wrapped_file_path(instance, filename):
-    return archive_file_path(instance)
+    return file_path_generator(instance)
 
 
 class ArchiveFile(RemoteModel):
@@ -97,7 +101,7 @@ class ArchiveFile(RemoteModel):
 
     def _resave_ondisk_file(self):
         old_file_uri = self.file.name
-        new_file_uri = archive_file_path(self)
+        new_file_uri = file_path_generator(self)
         if old_file_uri == new_file_uri:
             return
         Path(new_file_uri).parents[0].mkdir(parents=True, exist_ok=True)
